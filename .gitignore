@@ -1,0 +1,7 @@
+/personal
+
+# Database
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
