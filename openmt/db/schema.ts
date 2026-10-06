@@ -13,11 +13,23 @@ export const STATUSES = [
 export type MediaMetadata = {
   season?: string;
   episodes?: number;
-  external_ids?: { mal_id?: number; anilist_id?: number };
+  external_ids?: {
+    mal_id?: number;
+    anilist_id?: number;
+    tmdb_id?: number;
+    googlebooks_id?: string;
+    isbn?: string;
+  };
   total_seasons?: number;
   runtime_minutes?: number;
   volumes_count?: number;
   isbn?: string;
+  authors?: string[];
+  banner_image_url?: string;
+  synopsis?: string;
+  progress_unit?: "episodes" | "chapters" | "pages" | "minutes" | "units";
+  external_url?: string;
+  release_year?: number | string;
 };
 
 export const media = sqliteTable("media", {
