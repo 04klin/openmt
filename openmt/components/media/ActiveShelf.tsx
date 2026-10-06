@@ -5,7 +5,7 @@ import { Flame, Sparkles, Plus } from "lucide-react";
 
 interface ActiveShelfProps {
   items: Media[];
-  onUpdateProgress: (id: string, newProgress: number) => void;
+  onUpdateProgress: (id: string, newProgress: number, volumeUpdate?: { currentVolume: number }) => void;
   onUpdateStatus: (id: string, newStatus: MediaStatus) => void;
   onEdit: (item: Media) => void;
   onDelete: (id: string) => void;

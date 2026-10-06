@@ -22,6 +22,8 @@ export function EditMediaModal({
   const [status, setStatus] = useState<MediaStatus>("backlog");
   const [currentProgress, setCurrentProgress] = useState("0");
   const [maxProgress, setMaxProgress] = useState("");
+  const [currentVolume, setCurrentVolume] = useState("");
+  const [maxVolumes, setMaxVolumes] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const [streamLink, setStreamLink] = useState("");
   const [rating, setRating] = useState<number | null>(null);
@@ -36,6 +38,8 @@ export function EditMediaModal({
       setStatus(item.status as MediaStatus);
       setCurrentProgress(item.currentProgress.toString());
       setMaxProgress(item.maxProgress ? item.maxProgress.toString() : "");
+      setCurrentVolume(item.metadata?.currentVolume?.toString() ?? "");
+      setMaxVolumes(item.metadata?.maxVolumes?.toString() ?? "");
       setCoverImageUrl(item.coverImageUrl || "");
       setStreamLink(item.streamLink || "");
       setRating(item.rating || null);
@@ -64,6 +68,18 @@ export function EditMediaModal({
         .map((g) => g.trim())
         .filter(Boolean);
 
+      // Build metadata merge: preserve existing metadata, overlay volume fields
+      const parsedCurrentVol = currentVolume ? parseInt(currentVolume, 10) : undefined;
+      const parsedMaxVols = maxVolumes ? parseInt(maxVolumes, 10) : undefined;
+      const metadataPatch =
+        mediaType === "manga"
+          ? {
+              ...(item.metadata ?? {}),
+              ...(parsedCurrentVol !== undefined ? { currentVolume: parsedCurrentVol } : {}),
+              ...(parsedMaxVols !== undefined ? { maxVolumes: parsedMaxVols } : {}),
+            }
+          : item.metadata;
+
       const res = await fetch(`/api/media/${item.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -77,6 +93,7 @@ export function EditMediaModal({
           streamLink: streamLink.trim() || null,
           rating: rating || null,
           genres: parsedGenres,
+          ...(metadataPatch ? { metadata: metadataPatch } : {}),
         }),
       });
 
@@ -190,6 +207,39 @@ export function EditMediaModal({
               />
             </div>
           </div>
+
+          {/* Volume tracking — manga only */}
+          {mediaType === "manga" && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-violet-300 block mb-1">
+                  Current Volume
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={currentVolume}
+                  onChange={(e) => setCurrentVolume(e.target.value)}
+                  placeholder="e.g. 3"
+                  className="w-full bg-zinc-800 border border-violet-700/50 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-violet-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-violet-300 block mb-1">
+                  Total Volumes
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={maxVolumes}
+                  onChange={(e) => setMaxVolumes(e.target.value)}
+                  placeholder="Optional"
+                  className="w-full bg-zinc-800 border border-violet-700/50 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-violet-500"
+                />
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="text-xs font-semibold text-zinc-300 block mb-1">

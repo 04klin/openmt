@@ -158,8 +158,9 @@ export async function searchOmdb(
         progressUnit: isMovie ? "minutes" : "episodes",
         streamLink: `https://www.imdb.com/title/${item.imdbID}/`,
         metadata: {
-          external_ids: { imdb_id: item.imdbID },
+          external_ids: {},
           progress_unit: isMovie ? "minutes" : "episodes",
+          external_url: `https://www.imdb.com/title/${item.imdbID}/`,
         },
       };
     });

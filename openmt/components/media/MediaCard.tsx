@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 interface MediaCardProps {
   item: Media;
-  onUpdateProgress: (id: string, newProgress: number) => void;
+  onUpdateProgress: (id: string, newProgress: number, volumeUpdate?: { currentVolume: number }) => void;
   onUpdateStatus: (id: string, newStatus: MediaStatus) => void;
   onEdit: (item: Media) => void;
   onDelete: (id: string) => void;
@@ -260,7 +260,9 @@ export function MediaCard({
           currentProgress={item.currentProgress}
           maxProgress={item.maxProgress}
           mediaType={item.mediaType as MediaType}
-          onUpdate={(newVal) => onUpdateProgress(item.id, newVal)}
+          currentVolume={item.metadata?.currentVolume}
+          maxVolumes={item.metadata?.maxVolumes}
+          onUpdate={(newVal, volumeUpdate) => onUpdateProgress(item.id, newVal, volumeUpdate)}
         />
 
         {/* Quick action footer */}

@@ -110,16 +110,26 @@ export default function Home() {
 
   // Optimistic Progress Mutation
   const updateProgressMutation = useMutation({
-    mutationFn: async ({ id, newProgress }: { id: string; newProgress: number }) => {
+    mutationFn: async ({ id, newProgress, volumeUpdate }: { id: string; newProgress: number; volumeUpdate?: { currentVolume: number } }) => {
+      // Build the PATCH body — merge volume into metadata when present
+      const body: Record<string, unknown> = { currentProgress: newProgress };
+      if (volumeUpdate) {
+        // We need to fetch the current item's metadata to merge safely
+        const currentItem = queryClient.getQueryData<Media[]>(["media"])?.find((m) => m.id === id);
+        body.metadata = {
+          ...(currentItem?.metadata ?? {}),
+          currentVolume: volumeUpdate.currentVolume,
+        };
+      }
       const res = await fetch(`/api/media/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentProgress: newProgress }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error("Failed to update progress");
       return res.json();
     },
-    onMutate: async ({ id, newProgress }) => {
+    onMutate: async ({ id, newProgress, volumeUpdate }) => {
       await queryClient.cancelQueries({ queryKey: ["media"] });
       const previous = queryClient.getQueryData<Media[]>(["media"]);
 
@@ -132,6 +142,9 @@ export default function Home() {
               ...item,
               currentProgress: newProgress,
               status: isCompleted ? "completed" : item.status === "backlog" && newProgress > 0 ? "active" : item.status,
+              metadata: volumeUpdate
+                ? { ...(item.metadata ?? {}), currentVolume: volumeUpdate.currentVolume }
+                : item.metadata,
               updatedAt: new Date(),
             };
           }
@@ -347,8 +360,8 @@ export default function Home() {
         {!isLoading && mediaList.length > 0 && (
           <ActiveShelf
             items={activeItems}
-            onUpdateProgress={(id, newProg) =>
-              updateProgressMutation.mutate({ id, newProgress: newProg })
+            onUpdateProgress={(id, newProg, volumeUpdate) =>
+              updateProgressMutation.mutate({ id, newProgress: newProg, volumeUpdate })
             }
             onUpdateStatus={(id, newStatus) =>
               updateStatusMutation.mutate({ id, newStatus })
@@ -363,8 +376,8 @@ export default function Home() {
         {!isLoading && mediaList.length > 0 && (
           <CatalogView
             items={mediaList}
-            onUpdateProgress={(id, newProg) =>
-              updateProgressMutation.mutate({ id, newProgress: newProg })
+            onUpdateProgress={(id, newProg, volumeUpdate) =>
+              updateProgressMutation.mutate({ id, newProgress: newProg, volumeUpdate })
             }
             onUpdateStatus={(id, newStatus) =>
               updateStatusMutation.mutate({ id, newStatus })

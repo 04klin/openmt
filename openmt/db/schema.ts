@@ -23,6 +23,10 @@ export type MediaMetadata = {
   total_seasons?: number;
   runtime_minutes?: number;
   volumes_count?: number;
+  /** Current volume the reader is on (manga-specific) */
+  currentVolume?: number;
+  /** Maximum known volumes for a manga series */
+  maxVolumes?: number;
   isbn?: string;
   authors?: string[];
   banner_image_url?: string;
