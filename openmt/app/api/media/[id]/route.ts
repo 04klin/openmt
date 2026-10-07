@@ -41,6 +41,7 @@ export async function PATCH(
     }
 
     // Determine lifecycle state transition
+    const isManga = (validated.mediaType ?? existing.mediaType) === "manga";
     let updatedStatus = validated.status ?? existing.status;
     const newProgress =
       validated.currentProgress !== undefined
@@ -51,29 +52,66 @@ export async function PATCH(
         ? validated.maxProgress
         : existing.maxProgress;
 
-    // If reaching maxProgress and maxProgress > 0, auto-complete
-    if (
-      effectiveMaxProgress &&
-      effectiveMaxProgress > 0 &&
-      newProgress >= effectiveMaxProgress
-    ) {
-      updatedStatus = "completed";
-    } else if (
-      existing.status === "backlog" &&
-      newProgress > 0 &&
-      validated.status === undefined
-    ) {
-      // If user starts making progress from backlog, promote to active
-      updatedStatus = "active";
+    // Merge metadata safely
+    const mergedMetadata = {
+      ...(existing.metadata ?? {}),
+      ...(validated.metadata ?? {}),
+    };
+    const currentVolume = mergedMetadata.currentVolume ?? 1;
+    const maxVolumes = mergedMetadata.maxVolumes;
+    const hasCompletedFinalMangaVolume = Boolean(
+      maxVolumes &&
+        maxVolumes > 0 &&
+        currentVolume >= maxVolumes &&
+        effectiveMaxProgress &&
+        effectiveMaxProgress > 0 &&
+        newProgress >= effectiveMaxProgress
+    );
+
+    // Only apply automatic status transitions if status wasn't explicitly provided in the request
+    if (validated.status === undefined) {
+      if (isManga) {
+        // A manga is complete only after the chapter progress reaches the end
+        // of its final volume. Reaching that volume alone must keep it active.
+        if (hasCompletedFinalMangaVolume) {
+          updatedStatus = "completed";
+        } else if (
+          existing.status === "backlog" &&
+          (newProgress > 0 || currentVolume > 1)
+        ) {
+          updatedStatus = "active";
+        }
+      } else {
+        // If reaching maxProgress and maxProgress > 0, auto-complete
+        if (
+          effectiveMaxProgress &&
+          effectiveMaxProgress > 0 &&
+          newProgress >= effectiveMaxProgress
+        ) {
+          updatedStatus = "completed";
+        } else if (
+          existing.status === "backlog" &&
+          newProgress > 0
+        ) {
+          // If user starts making progress from backlog, promote to active
+          updatedStatus = "active";
+        }
+      }
+    }
+
+    const updateData: Record<string, unknown> = {
+      ...validated,
+      status: updatedStatus,
+      updatedAt: new Date(),
+    };
+
+    if (validated.metadata !== undefined || existing.metadata !== null) {
+      updateData.metadata = mergedMetadata;
     }
 
     const [updated] = await db
       .update(media)
-      .set({
-        ...validated,
-        status: updatedStatus,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(media.id, id))
       .returning();
 

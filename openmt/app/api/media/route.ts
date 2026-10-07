@@ -58,14 +58,35 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = createMediaSchema.parse(body);
 
-    // If maxProgress is present and currentProgress >= maxProgress, mark as completed
+    // Determine auto-status if status was not explicitly passed
     let effectiveStatus = validated.status;
-    if (
-      validated.maxProgress &&
-      validated.maxProgress > 0 &&
-      validated.currentProgress >= validated.maxProgress
-    ) {
-      effectiveStatus = "completed";
+    const isManga = validated.mediaType === "manga";
+    const currentVol = validated.metadata?.currentVolume ?? 1;
+    const maxVols = validated.metadata?.maxVolumes;
+    const hasCompletedFinalMangaVolume = Boolean(
+      maxVols &&
+        maxVols > 0 &&
+        currentVol >= maxVols &&
+        validated.maxProgress &&
+        validated.maxProgress > 0 &&
+        validated.currentProgress >= validated.maxProgress
+    );
+
+    if (isManga) {
+      if (hasCompletedFinalMangaVolume) {
+        effectiveStatus = "completed";
+      } else if (effectiveStatus === "backlog" && (validated.currentProgress > 0 || currentVol > 1)) {
+        effectiveStatus = "active";
+      }
+    } else {
+      // If maxProgress is present and currentProgress >= maxProgress, mark as completed
+      if (
+        validated.maxProgress &&
+        validated.maxProgress > 0 &&
+        validated.currentProgress >= validated.maxProgress
+      ) {
+        effectiveStatus = "completed";
+      }
     }
 
     const [inserted] = await db

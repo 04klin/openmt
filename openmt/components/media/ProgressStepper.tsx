@@ -76,7 +76,7 @@ export function ProgressStepper({
     if (isManga && currentProgress <= 1) {
       // If we're at chapter 1 (or 0) and volume > 1, go down a volume
       if (volCurrent > 1) {
-        onUpdate(currentProgress, { currentVolume: volCurrent - 1 });
+        onUpdate(maxProgress ?? currentProgress, { currentVolume: volCurrent - 1 });
       }
       return;
     }
@@ -90,26 +90,38 @@ export function ProgressStepper({
     e.stopPropagation();
     if (disabled) return;
 
-    if (maxProgress && currentProgress >= maxProgress) {
-      // Maxed out chapters → carry over to next volume
-      if (isManga) {
-        const nextVol = volCurrent + 1;
-        if (!maxVolumes || nextVol <= maxVolumes) {
-          // Reset to chapter 1, bump volume
-          onUpdate(1, { currentVolume: nextVol });
-        }
-      }
+    updateChapterProgress(currentProgress + 1);
+  };
+
+  /**
+   * Finishing a non-final manga volume immediately starts the next one.
+   * The final volume remains at its last chapter so the lifecycle can become
+   * completed. Other media simply retain their normal progress behaviour.
+   */
+  const updateChapterProgress = (nextProgress: number) => {
+    if (
+      isManga &&
+      maxProgress &&
+      maxProgress > 0 &&
+      nextProgress >= maxProgress &&
+      (!maxVolumes || volCurrent < maxVolumes)
+    ) {
+      onUpdate(1, { currentVolume: volCurrent + 1 });
       return;
     }
-    onUpdate(currentProgress + 1);
+
+    const cappedProgress =
+      maxProgress && maxProgress > 0
+        ? Math.min(nextProgress, maxProgress)
+        : nextProgress;
+    onUpdate(cappedProgress);
   };
 
   const handleCommitEdit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const parsed = parseInt(tempValue, 10);
     if (!isNaN(parsed) && parsed >= 0) {
-      const finalVal = maxProgress ? Math.min(parsed, maxProgress) : parsed;
-      onUpdate(finalVal);
+      updateChapterProgress(parsed);
     } else {
       setTempValue(currentProgress.toString());
     }
@@ -152,7 +164,7 @@ export function ProgressStepper({
   const handleSliderCommit = () => {
     setIsDragging(false);
     if (dragValue !== currentProgress) {
-      onUpdate(dragValue);
+      updateChapterProgress(dragValue);
     }
   };
 
@@ -209,8 +221,8 @@ export function ProgressStepper({
                   {maxVolumes ? `/ ${maxVolumes}` : ""}
                 </span>
                 {maxVolumes && volCurrent >= maxVolumes && (
-                  <span className="text-emerald-400 font-sans font-semibold text-[10px] ml-1">
-                    DONE
+                  <span className="text-violet-300 font-sans font-semibold text-[10px] ml-1">
+                    FINAL VOLUME
                   </span>
                 )}
               </button>

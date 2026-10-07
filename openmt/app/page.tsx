@@ -136,12 +136,40 @@ export default function Home() {
       queryClient.setQueryData<Media[]>(["media"], (old = []) =>
         old.map((item) => {
           if (item.id === id) {
-            const isCompleted =
-              item.maxProgress && item.maxProgress > 0 && newProgress >= item.maxProgress;
+            const isManga = item.mediaType === "manga";
+            const nextVolume =
+              volumeUpdate?.currentVolume ?? item.metadata?.currentVolume ?? 1;
+            const maxVolumes = item.metadata?.maxVolumes;
+
+            let isCompleted = false;
+            if (isManga) {
+              isCompleted = Boolean(
+                maxVolumes &&
+                  maxVolumes > 0 &&
+                  nextVolume >= maxVolumes &&
+                  item.maxProgress &&
+                  item.maxProgress > 0 &&
+                  newProgress >= item.maxProgress
+              );
+            } else {
+              isCompleted = Boolean(
+                item.maxProgress &&
+                  item.maxProgress > 0 &&
+                  newProgress >= item.maxProgress
+              );
+            }
+
+            const newStatus = isCompleted
+              ? "completed"
+              : item.status === "backlog" &&
+                (newProgress > 0 || (isManga && nextVolume > 1))
+              ? "active"
+              : item.status;
+
             return {
               ...item,
               currentProgress: newProgress,
-              status: isCompleted ? "completed" : item.status === "backlog" && newProgress > 0 ? "active" : item.status,
+              status: newStatus,
               metadata: volumeUpdate
                 ? { ...(item.metadata ?? {}), currentVolume: volumeUpdate.currentVolume }
                 : item.metadata,
