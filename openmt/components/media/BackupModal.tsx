@@ -50,8 +50,8 @@ export function BackupModal({
         onImportSuccess();
         onClose();
       }, 1200);
-    } catch (err: any) {
-      setError(err.message || "Failed to process backup file.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to process backup file.");
     } finally {
       setIsImporting(false);
     }

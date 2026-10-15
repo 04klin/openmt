@@ -2,18 +2,18 @@
 
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Media, MediaStatus, MediaType } from "@/db/schema";
+import { Media, MediaStatus } from "@/db/schema";
 import { NormalizedMediaResult } from "@/lib/types";
 import { Navbar } from "@/components/Navbar";
 import { Omnibar } from "@/components/media/Omnibar";
-import { ActiveShelf } from "@/components/media/ActiveShelf";
 import { CatalogView } from "@/components/media/CatalogView";
 import { PickForMeModal } from "@/components/media/PickForMeModal";
 import { ScratchpadModal } from "@/components/media/ScratchpadModal";
 import { ManualAddModal } from "@/components/media/ManualAddModal";
 import { EditMediaModal } from "@/components/media/EditMediaModal";
 import { BackupModal } from "@/components/media/BackupModal";
-import { Sparkles, Loader2, Plus, Dice5 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { ToastMessage, ToastViewport } from "@/components/ui/Toast";
 
 async function fetchMediaList(): Promise<Media[]> {
   const res = await fetch("/api/media");
@@ -22,6 +22,7 @@ async function fetchMediaList(): Promise<Media[]> {
   return data.items || [];
 }
 
+/* Sample data intentionally lives in the UI only when explicitly requested. */
 const SAMPLE_STARTER_DATA = [
   {
     title: "Frieren: Beyond Journey's End",
@@ -101,9 +102,15 @@ export default function Home() {
   const [isManualAddOpen, setIsManualAddOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Media | null>(null);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const notify = (text: string, tone: ToastMessage["tone"] = "success") => {
+    const id = Date.now() + Math.random();
+    setToasts((current) => [...current, { id, text, tone }]);
+    window.setTimeout(() => setToasts((current) => current.filter((toast) => toast.id !== id)), 4500);
+  };
 
   // Fetch Media Items
-  const { data: mediaList = [], isLoading, refetch } = useQuery({
+  const { data: mediaList = [], isLoading } = useQuery({
     queryKey: ["media"],
     queryFn: fetchMediaList,
   });
@@ -186,6 +193,7 @@ export default function Home() {
       if (context?.previous) {
         queryClient.setQueryData(["media"], context.previous);
       }
+      notify("Progress could not be saved. Your change was reverted.", "error");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["media"] });
@@ -217,6 +225,7 @@ export default function Home() {
       if (context?.previous) {
         queryClient.setQueryData(["media"], context.previous);
       }
+      notify("Status could not be saved. Your change was reverted.", "error");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["media"] });
@@ -242,6 +251,7 @@ export default function Home() {
       if (context?.previous) {
         queryClient.setQueryData(["media"], context.previous);
       }
+      notify("Delete failed. Your item was restored.", "error");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["media"] });
@@ -251,7 +261,7 @@ export default function Home() {
   // Omnibar Add Handler
   const handleAddMedia = async (
     item: NormalizedMediaResult,
-    status: "active" | "backlog"
+    status: "active" | "backlog" | "completed"
   ) => {
     const res = await fetch("/api/media", {
       method: "POST",
@@ -275,35 +285,13 @@ export default function Home() {
     });
 
     if (!res.ok) {
+      if (res.status === 409) throw new Error("That title is already in your library.");
       throw new Error("Failed to add media");
     }
 
     queryClient.invalidateQueries({ queryKey: ["media"] });
+    notify(`${item.title} added to your library.`);
   };
-
-  // Seed sample data
-  const handleSeedSamples = async () => {
-    try {
-      await fetch("/api/media/bulk", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: SAMPLE_STARTER_DATA }),
-      });
-      queryClient.invalidateQueries({ queryKey: ["media"] });
-    } catch (e) {
-      console.error("Seed error:", e);
-    }
-  };
-
-  const activeItems = React.useMemo(() => {
-    return mediaList
-      .filter((m) => m.status === "active")
-      .sort((a, b) => {
-        const timeA = new Date(a.createdAt).getTime();
-        const timeB = new Date(b.createdAt).getTime();
-        return timeA - timeB;
-      });
-  }, [mediaList]);
 
   const backlogItems = React.useMemo(() => {
     return mediaList.filter((m) => m.status === "backlog");
@@ -315,7 +303,7 @@ export default function Home() {
 
   const stats = {
     total: mediaList.length,
-    active: activeItems.length,
+    active: mediaList.filter((m) => m.status === "active").length,
     backlog: backlogItems.length,
     completed: completedItems.length,
   };
@@ -331,7 +319,7 @@ export default function Home() {
         onOpenBackup={() => setIsBackupOpen(true)}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-10">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
         {/* Omnibar Section */}
         <section className="space-y-3 text-center">
           <div className="space-y-1">
@@ -345,36 +333,13 @@ export default function Home() {
 
           <Omnibar
             onAddMedia={handleAddMedia}
+            localMedia={mediaList}
+            onUpdateStatus={async (id, status) => {
+              await updateStatusMutation.mutateAsync({ id, newStatus: status });
+            }}
             onOpenManualAdd={() => setIsManualAddOpen(true)}
           />
         </section>
-
-        {/* Empty state with Quick Seed if catalog is empty */}
-        {!isLoading && mediaList.length === 0 && (
-          <div className="max-w-xl mx-auto rounded-3xl bg-zinc-900/60 border border-zinc-800 p-8 text-center space-y-4 shadow-xl">
-            <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30">
-              <Sparkles className="size-7" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-base font-bold text-white">
-                Welcome to OpenMT!
-              </h3>
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                Your unified personal media tracker is ready. You can search above to add your favorite titles, or load a sample starter catalog to try out the decision engine and steppers immediately.
-              </p>
-            </div>
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={handleSeedSamples}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 hover:brightness-110 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
-              >
-                <Sparkles className="size-3.5" />
-                Load Sample Starter Catalog
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Loading Spinner */}
         {isLoading && (
@@ -384,24 +349,14 @@ export default function Home() {
           </div>
         )}
 
-        {/* Currently Consuming Shelf */}
-        {!isLoading && mediaList.length > 0 && (
-          <ActiveShelf
-            items={activeItems}
-            onUpdateProgress={(id, newProg, volumeUpdate) =>
-              updateProgressMutation.mutate({ id, newProgress: newProg, volumeUpdate })
-            }
-            onUpdateStatus={(id, newStatus) =>
-              updateStatusMutation.mutate({ id, newStatus })
-            }
-            onEdit={(item) => setEditingItem(item)}
-            onDelete={(id) => deleteMutation.mutate(id)}
-            onOpenPickForMe={() => setIsPickForMeOpen(true)}
-          />
-        )}
-
         {/* Catalog & Backlog Section */}
-        {!isLoading && mediaList.length > 0 && (
+        {!isLoading && mediaList.length === 0 ? (
+          <section className="mx-auto max-w-xl rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-950/40 to-zinc-900/70 p-8 text-center shadow-xl">
+            <h2 className="text-lg font-bold text-white">Build your personal media shelf</h2>
+            <p className="mt-2 text-sm leading-relaxed text-zinc-400">Search above to add anime, manga, shows, movies, or books. You can also start with a custom entry if it is not in one of the external catalogs.</p>
+            <button type="button" onClick={() => setIsManualAddOpen(true)} className="mt-5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-indigo-500">Add your first item manually</button>
+          </section>
+        ) : !isLoading && (
           <CatalogView
             items={mediaList}
             onUpdateProgress={(id, newProg, volumeUpdate) =>
@@ -450,6 +405,7 @@ export default function Home() {
         onClose={() => setIsBackupOpen(false)}
         onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ["media"] })}
       />
+      <ToastViewport messages={toasts} onDismiss={(id) => setToasts((current) => current.filter((toast) => toast.id !== id))} />
     </div>
   );
 }

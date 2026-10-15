@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { media, MEDIA_TYPES, STATUSES } from "@/db/schema";
 import { z } from "zod";
+import { deriveMediaStatus } from "@/lib/media/lifecycle";
 
 const bulkSchema = z.object({
   items: z.array(
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
         items.map((item) => ({
           title: item.title,
           mediaType: item.mediaType,
-          status: item.status,
+          status: deriveMediaStatus({ ...item, status: item.status }),
           currentProgress: item.currentProgress,
           maxProgress: item.maxProgress,
           coverImageUrl: item.coverImageUrl,

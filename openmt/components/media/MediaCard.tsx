@@ -262,6 +262,7 @@ export function MediaCard({
           mediaType={item.mediaType as MediaType}
           currentVolume={item.metadata?.currentVolume}
           maxVolumes={item.metadata?.maxVolumes}
+          forceComplete={item.status === "completed"}
           onUpdate={(newVal, volumeUpdate) => onUpdateProgress(item.id, newVal, volumeUpdate)}
         />
 

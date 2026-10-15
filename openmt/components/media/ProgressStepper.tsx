@@ -14,6 +14,7 @@ interface ProgressStepperProps {
   // Manga-specific volume props
   currentVolume?: number;
   maxVolumes?: number | null;
+  forceComplete?: boolean;
 }
 
 export function ProgressStepper({
@@ -25,6 +26,7 @@ export function ProgressStepper({
   compact = false,
   currentVolume,
   maxVolumes,
+  forceComplete = false,
 }: ProgressStepperProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [tempValue, setTempValue] = useState(currentProgress.toString());
@@ -57,8 +59,9 @@ export function ProgressStepper({
 
   const displayProgress = isDragging ? dragValue : currentProgress;
 
-  const percentage =
-    maxProgress && maxProgress > 0
+  const percentage = forceComplete
+    ? 100
+    : maxProgress && maxProgress > 0
       ? Math.min(100, Math.round((displayProgress / maxProgress) * 100))
       : 0;
 
@@ -331,7 +334,7 @@ export function ProgressStepper({
             <span className="text-zinc-400">
               {maxProgress ? `/ ${maxProgress}` : ""}
             </span>
-            {maxProgress && percentage >= 100 && (
+            {percentage >= 100 && (
               <span className="text-emerald-400 font-sans font-semibold text-[10px] ml-1">
                 DONE
               </span>
@@ -411,7 +414,7 @@ export function ProgressStepper({
         </div>
       ) : (
         <div className="w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden">
-          <div className="h-full bg-indigo-500/50 w-full animate-pulse" />
+          <div className={cn("h-full w-full", forceComplete ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]" : "bg-indigo-500/50 animate-pulse")} />
         </div>
       )}
     </div>

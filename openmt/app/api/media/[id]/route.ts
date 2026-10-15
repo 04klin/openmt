@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { media, MEDIA_TYPES, STATUSES } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { deriveMediaStatus } from "@/lib/media/lifecycle";
 
 const updateMediaSchema = z.object({
   title: z.string().min(1).optional(),
@@ -40,7 +41,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Media not found" }, { status: 404 });
     }
 
-    // Determine lifecycle state transition
+    // Determine lifecycle state transition in one shared domain function.
     const isManga = (validated.mediaType ?? existing.mediaType) === "manga";
     let updatedStatus = validated.status ?? existing.status;
     const newProgress =
@@ -57,47 +58,7 @@ export async function PATCH(
       ...(existing.metadata ?? {}),
       ...(validated.metadata ?? {}),
     };
-    const currentVolume = mergedMetadata.currentVolume ?? 1;
-    const maxVolumes = mergedMetadata.maxVolumes;
-    const hasCompletedFinalMangaVolume = Boolean(
-      maxVolumes &&
-        maxVolumes > 0 &&
-        currentVolume >= maxVolumes &&
-        effectiveMaxProgress &&
-        effectiveMaxProgress > 0 &&
-        newProgress >= effectiveMaxProgress
-    );
-
-    // Only apply automatic status transitions if status wasn't explicitly provided in the request
-    if (validated.status === undefined) {
-      if (isManga) {
-        // A manga is complete only after the chapter progress reaches the end
-        // of its final volume. Reaching that volume alone must keep it active.
-        if (hasCompletedFinalMangaVolume) {
-          updatedStatus = "completed";
-        } else if (
-          existing.status === "backlog" &&
-          (newProgress > 0 || currentVolume > 1)
-        ) {
-          updatedStatus = "active";
-        }
-      } else {
-        // If reaching maxProgress and maxProgress > 0, auto-complete
-        if (
-          effectiveMaxProgress &&
-          effectiveMaxProgress > 0 &&
-          newProgress >= effectiveMaxProgress
-        ) {
-          updatedStatus = "completed";
-        } else if (
-          existing.status === "backlog" &&
-          newProgress > 0
-        ) {
-          // If user starts making progress from backlog, promote to active
-          updatedStatus = "active";
-        }
-      }
-    }
+    updatedStatus = deriveMediaStatus({ mediaType: isManga ? "manga" : existing.mediaType, status: updatedStatus, currentProgress: newProgress, maxProgress: effectiveMaxProgress, metadata: mergedMetadata, allowAutomaticTransition: validated.status === undefined });
 
     const updateData: Record<string, unknown> = {
       ...validated,

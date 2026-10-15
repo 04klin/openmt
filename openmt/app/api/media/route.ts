@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { media, MEDIA_TYPES, STATUSES } from "@/db/schema";
-import { desc, eq, and } from "drizzle-orm";
+import { desc, eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
+import { deriveMediaStatus, normalizeTitle } from "@/lib/media/lifecycle";
 
 const createMediaSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -26,12 +27,12 @@ export async function GET(request: NextRequest) {
     const statusParam = searchParams.get("status");
     const typeParam = searchParams.get("type");
 
-    let conditions: any[] = [];
-    if (statusParam && STATUSES.includes(statusParam as any)) {
-      conditions.push(eq(media.status, statusParam as any));
+    const conditions = [];
+    if (statusParam && STATUSES.includes(statusParam as typeof STATUSES[number])) {
+      conditions.push(eq(media.status, statusParam as typeof STATUSES[number]));
     }
-    if (typeParam && MEDIA_TYPES.includes(typeParam as any)) {
-      conditions.push(eq(media.mediaType, typeParam as any));
+    if (typeParam && MEDIA_TYPES.includes(typeParam as typeof MEDIA_TYPES[number])) {
+      conditions.push(eq(media.mediaType, typeParam as typeof MEDIA_TYPES[number]));
     }
 
     const items =
@@ -58,36 +59,24 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = createMediaSchema.parse(body);
 
-    // Determine auto-status if status was not explicitly passed
-    let effectiveStatus = validated.status;
-    const isManga = validated.mediaType === "manga";
-    const currentVol = validated.metadata?.currentVolume ?? 1;
-    const maxVols = validated.metadata?.maxVolumes;
-    const hasCompletedFinalMangaVolume = Boolean(
-      maxVols &&
-        maxVols > 0 &&
-        currentVol >= maxVols &&
-        validated.maxProgress &&
-        validated.maxProgress > 0 &&
-        validated.currentProgress >= validated.maxProgress
-    );
-
-    if (isManga) {
-      if (hasCompletedFinalMangaVolume) {
-        effectiveStatus = "completed";
-      } else if (effectiveStatus === "backlog" && (validated.currentProgress > 0 || currentVol > 1)) {
-        effectiveStatus = "active";
-      }
-    } else {
-      // If maxProgress is present and currentProgress >= maxProgress, mark as completed
-      if (
-        validated.maxProgress &&
-        validated.maxProgress > 0 &&
-        validated.currentProgress >= validated.maxProgress
-      ) {
-        effectiveStatus = "completed";
-      }
+    const normalizedTitle = normalizeTitle(validated.title);
+    const externalIds = validated.metadata?.external_ids;
+    const externalIdChecks = externalIds
+      ? Object.entries(externalIds)
+          .filter(([key, value]) => ["mal_id", "anilist_id", "tmdb_id", "googlebooks_id", "isbn"].includes(key) && value !== undefined)
+          .map(([key, value]) => sql`json_extract(${media.metadata}, '$.external_ids.${sql.raw(key)}') = ${value}`)
+      : [];
+    const existing = await db.select({ id: media.id }).from(media).where(and(
+      eq(media.mediaType, validated.mediaType),
+      externalIdChecks.length > 0
+        ? sql`(lower(trim(${media.title})) = ${normalizedTitle} OR ${sql.join(externalIdChecks, sql` OR `)})`
+        : sql`lower(trim(${media.title})) = ${normalizedTitle}`,
+    )).limit(1);
+    if (existing.length > 0) {
+      return NextResponse.json({ error: "This title is already in your library", duplicateId: existing[0].id }, { status: 409 });
     }
+
+    const effectiveStatus = deriveMediaStatus({ ...validated, status: validated.status });
 
     const [inserted] = await db
       .insert(media)

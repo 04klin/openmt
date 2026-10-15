@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { media } from "@/db/schema";
+import { deriveMediaStatus } from "@/lib/media/lifecycle";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,8 +16,9 @@ export async function POST(request: NextRequest) {
     }
 
     let insertedCount = 0;
+    let skippedCount = 0;
     for (const item of items) {
-      if (!item.title || !item.mediaType) continue;
+      if (!item.title || !item.mediaType) { skippedCount++; continue; }
 
       await db
         .insert(media)
@@ -24,7 +26,7 @@ export async function POST(request: NextRequest) {
           id: item.id || crypto.randomUUID(),
           title: item.title,
           mediaType: item.mediaType,
-          status: item.status || "backlog",
+          status: deriveMediaStatus({ mediaType: item.mediaType, status: item.status || "backlog", currentProgress: Number(item.currentProgress) || 0, maxProgress: item.maxProgress ? Number(item.maxProgress) : null, metadata: item.metadata || {} }),
           currentProgress: Number(item.currentProgress) || 0,
           maxProgress: item.maxProgress ? Number(item.maxProgress) : null,
           coverImageUrl: item.coverImageUrl || null,
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
       insertedCount++;
     }
 
-    return NextResponse.json({ success: true, count: insertedCount });
+    return NextResponse.json({ success: true, count: insertedCount, skipped: skippedCount });
   } catch (error) {
     console.error("Import failed:", error);
     return NextResponse.json({ error: "Failed to import data" }, { status: 500 });

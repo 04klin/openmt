@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Media, MediaType, MediaStatus } from "@/db/schema";
 import { MediaCard } from "./MediaCard";
-import { Search, SlidersHorizontal, Layers, Sparkles, X } from "lucide-react";
+import { Search, Layers, Sparkles, X } from "lucide-react";
 import Fuse from "fuse.js";
 import { cn } from "@/lib/utils";
 
@@ -117,7 +117,7 @@ export function CatalogView({
             </div>
             <div>
               <h2 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
-                Media Catalog & Backlog
+                Your Media
                 <span className="text-xs font-mono text-zinc-400">
                   ({filteredItems.length} {filteredItems.length === 1 ? "item" : "items"})
                 </span>
@@ -224,7 +224,7 @@ export function CatalogView({
 
       {/* Media Grid */}
       {filteredItems.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredItems.map((item) => (
             <MediaCard
               key={item.id}

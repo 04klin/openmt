@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search, Loader2, Plus, Play, Sparkles, X, ExternalLink } from "lucide-react";
-import { MediaType } from "@/db/schema";
+import { Search, Loader2, Plus, Play, Sparkles, X, CheckCircle2, Library } from "lucide-react";
+import { Media, MediaStatus, MediaType } from "@/db/schema";
 import { NormalizedMediaResult } from "@/lib/types";
 import { MediaBadge } from "./MediaBadge";
 import { cn } from "@/lib/utils";
 
 interface OmnibarProps {
-  onAddMedia: (item: NormalizedMediaResult, status: "active" | "backlog") => Promise<void>;
+  onAddMedia: (item: NormalizedMediaResult, status: "active" | "backlog" | "completed") => Promise<void>;
+  localMedia: Media[];
+  onUpdateStatus: (id: string, status: MediaStatus) => Promise<void>;
   onOpenManualAdd: () => void;
 }
 
@@ -19,15 +21,50 @@ const CATEGORIES: { label: string; value: MediaType | "all" }[] = [
   { label: "Books", value: "book" },
 ];
 
-export function Omnibar({ onAddMedia, onOpenManualAdd }: OmnibarProps) {
+function normalizeTitle(title: string) {
+  return title.trim().toLocaleLowerCase().replace(/\s+/g, " ");
+}
+
+function findLibraryItem(item: NormalizedMediaResult, library: Media[]) {
+  const externalIds = item.metadata?.external_ids;
+  return library.find((saved) => {
+    if (saved.mediaType !== item.mediaType) return false;
+    const savedIds = saved.metadata?.external_ids;
+    if (externalIds && savedIds) {
+      const hasMatchingId = Object.entries(externalIds).some(([key, value]) =>
+        value !== undefined && savedIds[key as keyof typeof savedIds] === value
+      );
+      if (hasMatchingId) return true;
+    }
+    return normalizeTitle(saved.title) === normalizeTitle(item.title);
+  });
+}
+
+export function Omnibar({ onAddMedia, localMedia, onUpdateStatus, onOpenManualAdd }: OmnibarProps) {
   const [query, setQuery] = useState("");
   const [selectedType, setSelectedType] = useState<MediaType | "all">("all");
+  const [searchScope, setSearchScope] = useState<"online" | "local">("online");
   const [results, setResults] = useState<NormalizedMediaResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [addingId, setAddingId] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    function handleShortcut(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      const isTyping = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
+      if (!isTyping && event.key.toLowerCase() === "t" && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        event.preventDefault();
+        inputRef.current?.focus();
+        setIsOpen(true);
+      }
+    }
+    document.addEventListener("keydown", handleShortcut);
+    return () => document.removeEventListener("keydown", handleShortcut);
+  }, []);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -52,6 +89,30 @@ export function Omnibar({ onAddMedia, onOpenManualAdd }: OmnibarProps) {
     const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
+        if (searchScope === "local") {
+          const normalized = trimmed.toLocaleLowerCase();
+          const localResults = localMedia
+            .filter((item) =>
+              (selectedType === "all" || item.mediaType === selectedType) &&
+              item.title.toLocaleLowerCase().includes(normalized)
+            )
+            .slice(0, 20)
+            .map((item): NormalizedMediaResult => ({
+              id: item.id,
+              provider: "manual",
+              title: item.title,
+              mediaType: item.mediaType as MediaType,
+              coverImageUrl: item.coverImageUrl ?? undefined,
+              maxProgress: item.maxProgress ?? undefined,
+              progressUnit: item.metadata?.progress_unit ?? "units",
+              genres: item.genres ?? undefined,
+              streamLink: item.streamLink ?? undefined,
+              metadata: item.metadata ?? undefined,
+            }));
+          setResults(localResults);
+          setIsOpen(true);
+          return;
+        }
         const res = await fetch(
           `/api/search?q=${encodeURIComponent(trimmed)}&type=${selectedType}&limit=10`
         );
@@ -68,15 +129,12 @@ export function Omnibar({ onAddMedia, onOpenManualAdd }: OmnibarProps) {
     }, 280);
 
     return () => clearTimeout(timer);
-  }, [query, selectedType]);
+  }, [query, selectedType, searchScope, localMedia]);
 
-  const handleAdd = async (item: NormalizedMediaResult, status: "active" | "backlog") => {
+  const handleAdd = async (item: NormalizedMediaResult, status: "active" | "backlog" | "completed") => {
     setAddingId(item.id + status);
     try {
       await onAddMedia(item, status);
-      // Optional: keep search open or clear query
-      setIsOpen(false);
-      setQuery("");
     } catch (e) {
       console.error("Failed to add item:", e);
     } finally {
@@ -85,32 +143,70 @@ export function Omnibar({ onAddMedia, onOpenManualAdd }: OmnibarProps) {
   };
 
   return (
-    <div ref={containerRef} className="relative w-full max-w-3xl mx-auto z-40">
+    <div
+      ref={containerRef}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          setIsOpen(false);
+          (e.target as HTMLElement).blur();
+        }
+      }}
+      className="relative w-full max-w-3xl mx-auto z-40"
+    >
       {/* Search Bar Container */}
-      <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-1.5 rounded-2xl bg-zinc-900/90 border border-zinc-700/70 shadow-2xl backdrop-blur-xl focus-within:border-indigo-500/80 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+      <div className="relative z-20 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-1.5 rounded-2xl bg-zinc-900/90 border border-zinc-700/70 shadow-2xl backdrop-blur-xl focus-within:border-indigo-500/80 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
         {/* Category Pills */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 px-1 scrollbar-none">
-          {CATEGORIES.map((cat) => (
+        <div className="flex items-center gap-1 pb-1 sm:pb-0 px-1">
+          {(["online", "local"] as const).map((scope) => (
             <button
-              key={cat.value}
+              key={scope}
               type="button"
-              onClick={() => setSelectedType(cat.value)}
+              onClick={() => setSearchScope(scope)}
               className={cn(
                 "px-2.5 py-1 rounded-xl text-xs font-medium whitespace-nowrap transition-all cursor-pointer",
-                selectedType === cat.value
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "bg-zinc-800/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                searchScope === scope ? "bg-cyan-600 text-white shadow-sm" : "bg-zinc-800/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
               )}
             >
-              {cat.label}
+              {scope === "local" && <Library className="inline size-3 mr-1" />}
+              {scope === "online" ? "Online" : "My Library"}
             </button>
           ))}
+          <div className="group relative shrink-0">
+            <button
+              type="button"
+              aria-label="Choose media type"
+              className="px-2.5 py-1 rounded-xl text-xs font-medium whitespace-nowrap bg-indigo-600 text-white shadow-sm cursor-pointer"
+            >
+              {CATEGORIES.find((cat) => cat.value === selectedType)?.label ?? "All"}
+            </button>
+
+            <div className="invisible absolute left-0 top-full z-[100] pt-2 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+              <div className="flex items-center gap-1 rounded-xl border border-zinc-700/80 bg-zinc-900/95 p-1.5 shadow-2xl backdrop-blur-xl">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.value}
+                    type="button"
+                    onClick={() => setSelectedType(cat.value)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer",
+                      selectedType === cat.value
+                        ? "bg-indigo-600 text-white"
+                        : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+                    )}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Input Field */}
         <div className="relative flex-1 flex items-center min-w-0">
           <Search className="absolute left-3 size-4 text-zinc-400 pointer-events-none" />
           <input
+            ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => {
@@ -143,17 +239,19 @@ export function Omnibar({ onAddMedia, onOpenManualAdd }: OmnibarProps) {
 
       {/* Results Dropdown */}
       {isOpen && query.trim().length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 max-h-[70vh] overflow-y-auto rounded-2xl glass-dropdown shadow-2xl p-2 z-50 border border-zinc-700/80 animate-in fade-in-0 zoom-in-95 duration-150">
+        <div className="absolute top-full left-0 right-0 mt-2 max-h-[70vh] overflow-y-auto rounded-2xl glass-dropdown shadow-2xl p-2 z-10 border border-zinc-700/80 animate-in fade-in-0 zoom-in-95 duration-150">
           {results.length > 0 ? (
             <div className="space-y-1.5">
               <div className="px-2 py-1 flex items-center justify-between text-[11px] font-semibold tracking-wider uppercase text-zinc-400 border-b border-zinc-800/80 mb-1">
-                <span>Search Suggestions ({results.length})</span>
-                <span className="text-[10px] text-zinc-500">Auto-resolved metadata</span>
+                <span>{searchScope === "local" ? "My Library" : "Online Results"} ({results.length})</span>
+                <span className="text-[10px] text-zinc-500">{searchScope === "local" ? "Your saved media" : "Auto-resolved metadata"}</span>
               </div>
 
               {results.map((item) => {
                 const isAddingActive = addingId === item.id + "active";
                 const isAddingBacklog = addingId === item.id + "backlog";
+                const isAddingCompleted = addingId === item.id + "completed";
+                const localItem = findLibraryItem(item, localMedia);
 
                 return (
                   <div
@@ -210,6 +308,21 @@ export function Omnibar({ onAddMedia, onOpenManualAdd }: OmnibarProps) {
 
                     {/* Action Buttons */}
                     <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                      {localItem ? (
+                        <button
+                          type="button"
+                          disabled={Boolean(addingId) || localItem.status === "completed"}
+                          onClick={async () => {
+                            setAddingId(item.id + "completed");
+                            try { await onUpdateStatus(localItem.id, "completed"); }
+                            finally { setAddingId(null); }
+                          }}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                        >
+                          {isAddingCompleted ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
+                          <span>{localItem.status === "completed" ? "Already in library" : `In library · ${localItem.status}`}</span>
+                        </button>
+                      ) : <>
                       <button
                         type="button"
                         disabled={Boolean(addingId)}
@@ -237,6 +350,16 @@ export function Omnibar({ onAddMedia, onOpenManualAdd }: OmnibarProps) {
                         )}
                         <span>Start Now</span>
                       </button>
+                      <button
+                        type="button"
+                        disabled={Boolean(addingId)}
+                        onClick={() => handleAdd(item, "completed")}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        {isAddingCompleted ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
+                        <span>Completed</span>
+                      </button>
+                      </>}
                     </div>
                   </div>
                 );
@@ -247,7 +370,7 @@ export function Omnibar({ onAddMedia, onOpenManualAdd }: OmnibarProps) {
               <p className="text-sm text-zinc-400">
                 No matching media found for &ldquo;<span className="text-zinc-200">{query}</span>&rdquo;
               </p>
-              <button
+              {searchScope === "online" && <button
                 type="button"
                 onClick={() => {
                   setIsOpen(false);
@@ -257,8 +380,8 @@ export function Omnibar({ onAddMedia, onOpenManualAdd }: OmnibarProps) {
               >
                 <Plus className="size-3.5" />
                 Add custom media manually
-              </button>
-            </div>
+              </button>}
+      </div>
           ) : null}
         </div>
       )}
