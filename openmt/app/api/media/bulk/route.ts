@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { media, MEDIA_TYPES, STATUSES } from "@/db/schema";
 import { z } from "zod";
 import { deriveMediaStatus } from "@/lib/media/lifecycle";
+import { getCurrentUser } from "@/lib/auth";
 
 const bulkSchema = z.object({
   items: z.array(
@@ -23,6 +24,8 @@ const bulkSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const body = await request.json();
     const { items } = bulkSchema.parse(body);
 
@@ -34,6 +37,7 @@ export async function POST(request: NextRequest) {
       .insert(media)
       .values(
         items.map((item) => ({
+          userId: user.id,
           title: item.title,
           mediaType: item.mediaType,
           status: deriveMediaStatus({ ...item, status: item.status }),

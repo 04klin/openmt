@@ -4,6 +4,7 @@ import { media, MEDIA_TYPES, STATUSES } from "@/db/schema";
 import { desc, eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import { deriveMediaStatus, normalizeTitle } from "@/lib/media/lifecycle";
+import { getCurrentUser } from "@/lib/auth";
 
 const createMediaSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -23,11 +24,13 @@ const createMediaSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await getCurrentUser(); if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const { searchParams } = new URL(request.url);
     const statusParam = searchParams.get("status");
     const typeParam = searchParams.get("type");
 
     const conditions = [];
+    conditions.push(eq(media.userId, user.id));
     if (statusParam && STATUSES.includes(statusParam as typeof STATUSES[number])) {
       conditions.push(eq(media.status, statusParam as typeof STATUSES[number]));
     }
@@ -56,6 +59,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getCurrentUser(); if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const body = await request.json();
     const validated = createMediaSchema.parse(body);
 
@@ -68,6 +72,7 @@ export async function POST(request: NextRequest) {
       : [];
     const existing = await db.select({ id: media.id }).from(media).where(and(
       eq(media.mediaType, validated.mediaType),
+      eq(media.userId, user.id),
       externalIdChecks.length > 0
         ? sql`(lower(trim(${media.title})) = ${normalizedTitle} OR ${sql.join(externalIdChecks, sql` OR `)})`
         : sql`lower(trim(${media.title})) = ${normalizedTitle}`,
@@ -81,6 +86,7 @@ export async function POST(request: NextRequest) {
     const [inserted] = await db
       .insert(media)
       .values({
+        userId: user.id,
         title: validated.title,
         mediaType: validated.mediaType,
         status: effectiveStatus,

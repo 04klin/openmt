@@ -1,0 +1,13 @@
+services:
+  openmt:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: sqlite:///app/data/sqlite.db
+    volumes:
+      - openmt-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  openmt-data:

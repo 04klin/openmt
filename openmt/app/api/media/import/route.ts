@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { media } from "@/db/schema";
 import { deriveMediaStatus } from "@/lib/media/lifecycle";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getCurrentUser(); if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const body = await request.json();
     const items = Array.isArray(body) ? body : body.data;
 
@@ -23,6 +25,7 @@ export async function POST(request: NextRequest) {
       await db
         .insert(media)
         .values({
+          userId: user.id,
           id: item.id || crypto.randomUUID(),
           title: item.title,
           mediaType: item.mediaType,

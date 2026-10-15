@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { media } from "@/db/schema";
 import { desc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET() {
   try {
-    const allMedia = await db.select().from(media).orderBy(desc(media.createdAt));
+    const user = await getCurrentUser(); if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    const allMedia = await db.select().from(media).where(eq(media.userId, user.id)).orderBy(desc(media.createdAt));
     const exportData = {
       version: "1.0",
       exportedAt: new Date().toISOString(),

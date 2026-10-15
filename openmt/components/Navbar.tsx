@@ -9,7 +9,13 @@ import {
   CheckCircle2,
   Clock,
   Layers,
+  UserCircle,
+  Settings,
+  LogOut,
 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 interface NavbarProps {
   stats: {
@@ -31,6 +37,17 @@ export function Navbar({
   onOpenManualAdd: onManualAdd,
   onOpenBackup: onBackup,
 }: NavbarProps) {
+  const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const [user, setUser] = useState<{ username?: string; name?: string; email?: string; role?: string } | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    try { setUser(JSON.parse(localStorage.getItem("openmt-user") || "null")); } catch {}
+  }, []);
+  useEffect(() => {
+    const close = (event: MouseEvent) => { if (!menuRef.current?.contains(event.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", close); return () => document.removeEventListener("mousedown", close);
+  }, []);
   return (
     <header className="sticky top-0 z-30 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
@@ -86,6 +103,19 @@ export function Navbar({
             <Dice5 className="size-4" />
             <span className="hidden sm:inline">Pick For Me</span>
           </button>
+
+          <div className="relative" ref={menuRef}>
+            <button type="button" aria-label="Account menu" onClick={() => setOpen(!open)} className="flex size-8 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-300 transition hover:bg-zinc-800 hover:text-white">
+              <UserCircle className="size-4" />
+            </button>
+            {open && <div className="glass-dropdown absolute right-0 top-10 z-50 w-56 rounded-2xl p-2 shadow-2xl">
+              {user ? <>
+                <div className="border-b border-zinc-800 px-3 py-2"><p className="text-sm font-semibold text-white">{user.username || user.name}</p><p className="text-xs text-zinc-500">{user.role ? `${user.role} account` : "Account"}</p></div>
+                <Link href="/settings" className="mt-1 flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white"><Settings className="size-4" /> Settings</Link>
+                <button type="button" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); localStorage.removeItem("openmt-user"); setUser(null); setOpen(false); router.replace("/landing"); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-rose-300 hover:bg-rose-500/10"><LogOut className="size-4" /> Log out</button>
+              </> : <><Link href="/login" className="block rounded-xl px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800">Log in</Link><Link href="/signup" className="block rounded-xl px-3 py-2 text-sm text-indigo-300 hover:bg-zinc-800">Create account</Link></>}
+            </div>}
+          </div>
 
           {/* Scratchpad */}
           <button

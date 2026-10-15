@@ -40,6 +40,7 @@ export const media = sqliteTable("media", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().default("local-user"),
   title: text("title").notNull(),
   mediaType: text("media_type", { enum: MEDIA_TYPES }).notNull(),
   status: text("status", { enum: STATUSES }).default("backlog").notNull(),
@@ -68,7 +69,24 @@ export const media = sqliteTable("media", {
     .notNull(),
 });
 
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  username: text("username").notNull().unique(),
+  role: text("role", { enum: ["admin", "user"] }).notNull().default("user"),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(strftime('%s', 'now'))`).notNull(),
+});
+
+export const sessions = sqliteTable("sessions", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(strftime('%s', 'now'))`).notNull(),
+});
+
 export type MediaType = (typeof MEDIA_TYPES)[number];
 export type MediaStatus = (typeof STATUSES)[number];
 export type Media = typeof media.$inferSelect;
 export type NewMedia = typeof media.$inferInsert;
+export type User = typeof users.$inferSelect;

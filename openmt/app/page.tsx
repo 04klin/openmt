@@ -14,6 +14,8 @@ import { EditMediaModal } from "@/components/media/EditMediaModal";
 import { BackupModal } from "@/components/media/BackupModal";
 import { Loader2 } from "lucide-react";
 import { ToastMessage, ToastViewport } from "@/components/ui/Toast";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 async function fetchMediaList(): Promise<Media[]> {
   const res = await fetch("/api/media");
@@ -94,6 +96,24 @@ const SAMPLE_STARTER_DATA = [
 ];
 
 export default function Home() {
+  const router = useRouter();
+  const { data: auth, isLoading: isCheckingAuth } = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: async () => (await fetch("/api/auth/me")).json(),
+    retry: false,
+  });
+
+  if (isCheckingAuth) {
+    return <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-sm text-zinc-400"><Loader2 className="mr-2 size-4 animate-spin" /> Checking your session…</div>;
+  }
+  if (!auth?.user) {
+    router.replace("/landing");
+    return <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-sm text-zinc-400">Redirecting…</div>;
+  }
+  return <Dashboard />;
+}
+
+function Dashboard() {
   const queryClient = useQueryClient();
 
   // Modals state
@@ -113,6 +133,7 @@ export default function Home() {
   const { data: mediaList = [], isLoading } = useQuery({
     queryKey: ["media"],
     queryFn: fetchMediaList,
+    enabled: true,
   });
 
   // Optimistic Progress Mutation
@@ -408,4 +429,17 @@ export default function Home() {
       <ToastViewport messages={toasts} onDismiss={(id) => setToasts((current) => current.filter((toast) => toast.id !== id))} />
     </div>
   );
+}
+
+export function LandingPage() {
+  return <main className="min-h-screen overflow-hidden bg-zinc-950 text-zinc-100">
+    <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-8 lg:px-8">
+      <nav className="flex items-center justify-between">
+        <Link href="/landing" className="flex items-center gap-2 text-lg font-extrabold"><span className="flex size-9 items-center justify-center rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-400">✦</span> OpenMT</Link>
+        <div className="flex items-center gap-3"><Link href="/login" className="rounded-xl px-4 py-2 text-sm text-zinc-300 hover:text-white">Log in</Link><Link href="/signup" className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-500">Get started</Link></div>
+      </nav>
+      <section className="flex flex-1 items-center py-20"><div className="max-w-3xl"><p className="mb-5 text-xs font-bold uppercase tracking-[0.25em] text-cyan-300">Your personal media command center</p><h1 className="text-5xl font-black tracking-tight text-white sm:text-7xl">Know what to watch, read, and finish next.</h1><p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-400">OpenMT brings anime, manga, TV, movies, and books into one calm, searchable shelf—so your next choice is easy and your progress never gets lost.</p><div className="mt-9 flex flex-wrap gap-3"><Link href="/signup" className="rounded-2xl bg-gradient-to-r from-indigo-600 to-cyan-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 hover:brightness-110">Create your free account</Link><Link href="/login" className="rounded-2xl border border-zinc-700 px-6 py-3 text-sm font-semibold text-zinc-200 hover:bg-zinc-900">I already have an account</Link></div></div></section>
+      <section className="grid gap-4 border-t border-zinc-800 pt-8 text-sm text-zinc-400 sm:grid-cols-3"><div><p className="font-semibold text-white">One unified shelf</p><p className="mt-1">Track every format in one place.</p></div><div><p className="font-semibold text-white">Less decision fatigue</p><p className="mt-1">Use Pick For Me when choosing feels hard.</p></div><div><p className="font-semibold text-white">Private by default</p><p className="mt-1">Your library belongs to your account.</p></div></section>
+    </div>
+  </main>;
 }

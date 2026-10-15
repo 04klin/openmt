@@ -4,6 +4,8 @@ import { media, MEDIA_TYPES, STATUSES } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { deriveMediaStatus } from "@/lib/media/lifecycle";
+import { getCurrentUser } from "@/lib/auth";
+import { and } from "drizzle-orm";
 
 const updateMediaSchema = z.object({
   title: z.string().min(1).optional(),
@@ -26,6 +28,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await getCurrentUser(); if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const { id } = await params;
     const body = await request.json();
     const validated = updateMediaSchema.parse(body);
@@ -34,7 +37,7 @@ export async function PATCH(
     const [existing] = await db
       .select()
       .from(media)
-      .where(eq(media.id, id))
+      .where(and(eq(media.id, id), eq(media.userId, user.id)))
       .limit(1);
 
     if (!existing) {
@@ -94,10 +97,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await getCurrentUser(); if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     const { id } = await params;
     const [deleted] = await db
       .delete(media)
-      .where(eq(media.id, id))
+      .where(and(eq(media.id, id), eq(media.userId, user.id)))
       .returning();
 
     if (!deleted) {
