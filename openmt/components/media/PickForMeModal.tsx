@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Media, MediaType, MediaStatus } from "@/db/schema";
-import { MediaBadge, MEDIA_TYPE_CONFIG } from "./MediaBadge";
+import { Media, MediaType } from "@/db/schema";
+import { MediaBadge } from "./MediaBadge";
 import {
   Sparkles,
   Dice5,
@@ -8,9 +8,6 @@ import {
   Play,
   RotateCcw,
   X,
-  ExternalLink,
-  Flame,
-  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 

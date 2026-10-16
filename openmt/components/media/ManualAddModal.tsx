@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { MediaType, MediaStatus } from "@/db/schema";
-import { Plus, Loader2, X, Sparkles } from "lucide-react";
+import { Plus, Loader2, X } from "lucide-react";
 
 interface ManualAddModalProps {
   isOpen: boolean;
@@ -20,7 +20,6 @@ export function ManualAddModal({
   const [maxProgress, setMaxProgress] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const [streamLink, setStreamLink] = useState("");
-  const [synopsis, setSynopsis] = useState("");
   const [genres, setGenres] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +56,6 @@ export function ManualAddModal({
           coverImageUrl: coverImageUrl.trim() || null,
           streamLink: streamLink.trim() || null,
           genres: parsedGenres,
-          metadata: synopsis ? { synopsis } : {},
         }),
       });
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Media, MediaType, MediaStatus } from "@/db/schema";
-import { Save, Loader2, X, Trash2, Star } from "lucide-react";
+import { Save, Loader2, X, Trash2 } from "lucide-react";
 
 interface EditMediaModalProps {
   item: Media | null;

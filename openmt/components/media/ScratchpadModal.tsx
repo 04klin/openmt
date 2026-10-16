@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { MediaType, MediaStatus } from "@/db/schema";
-import { FileText, Loader2, X, Plus, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { FileText, Loader2, X, Plus } from "lucide-react";
 
 interface ScratchpadModalProps {
   isOpen: boolean;

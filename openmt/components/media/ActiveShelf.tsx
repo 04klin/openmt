@@ -1,7 +1,6 @@
-import React from "react";
-import { Media, MediaType, MediaStatus } from "@/db/schema";
+import { Media, MediaStatus } from "@/db/schema";
 import { MediaCard } from "./MediaCard";
-import { Flame, Sparkles, Plus } from "lucide-react";
+import { Flame, Sparkles } from "lucide-react";
 
 interface ActiveShelfProps {
   items: Media[];

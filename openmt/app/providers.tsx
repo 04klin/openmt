@@ -6,7 +6,6 @@ import {
   QueryClient,
   QueryClientProvider,
 } from "@tanstack/react-query";
-import { useState } from "react";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -33,8 +32,6 @@ function getQueryClient() {
 }
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  // NOTE: Avoid useState when initializing QueryClient if you are not using
-  // a suspense boundary between this and the code that might suspend
   const queryClient = getQueryClient();
 
   return (

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Download, Upload, Loader2, X, Check, FileJson } from "lucide-react";
+import { Download, Upload, X, Check, FileJson } from "lucide-react";
 
 interface BackupModalProps {
   isOpen: boolean;
