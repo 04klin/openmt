@@ -239,7 +239,7 @@ export function PickForMeModal({
               className={cn(
                 "w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-xl transition-all cursor-pointer",
                 eligibleItems.length > 0
-                  ? "bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-500 text-white hover:brightness-110 active:scale-98 shadow-indigo-500/25"
+                  ? "bg-violet-400 text-violet-950 hover:bg-violet-300 active:scale-98 shadow-violet-200/70"
                   : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
               )}
             >

@@ -268,7 +268,7 @@ export function ProgressStepper({
                   "h-full transition-[width] ease-out rounded-full",
                   volumePercentage >= 100
                     ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]"
-                    : "bg-gradient-to-r from-violet-500 to-fuchsia-400 shadow-[0_0_8px_rgba(139,92,246,0.4)]"
+                    : "bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.35)]"
                 )}
                 style={{ width: `${volumePercentage}%` }}
               />
@@ -387,7 +387,7 @@ export function ProgressStepper({
                 "h-full transition-[width] ease-out rounded-full",
                 percentage >= 100
                   ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]"
-                  : "bg-gradient-to-r from-indigo-500 to-cyan-400 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                  : "bg-sky-300 shadow-[0_0_10px_rgba(125,211,252,0.45)]"
               )}
               style={{ width: `${percentage}%` }}
             />

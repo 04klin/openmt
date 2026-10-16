@@ -330,7 +330,7 @@ function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 selection:bg-indigo-500 selection:text-white pb-20">
+    <div className="min-h-screen flex flex-col bg-[#f4f2fb] text-slate-700 selection:bg-violet-200 selection:text-slate-800 pb-20">
       {/* Top Navbar */}
       <Navbar
         stats={stats}
@@ -344,7 +344,7 @@ function Dashboard() {
         {/* Omnibar Section */}
         <section className="space-y-3 text-center">
           <div className="space-y-1">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-800">
               What are we reading or watching next?
             </h1>
             <p className="text-xs sm:text-sm text-zinc-400 max-w-lg mx-auto">
@@ -372,7 +372,7 @@ function Dashboard() {
 
         {/* Catalog & Backlog Section */}
         {!isLoading && mediaList.length === 0 ? (
-          <section className="mx-auto max-w-xl rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-950/40 to-zinc-900/70 p-8 text-center shadow-xl">
+          <section className="mx-auto max-w-xl rounded-3xl border border-violet-200 bg-white/80 p-8 text-center shadow-xl shadow-violet-100/70">
             <h2 className="text-lg font-bold text-white">Build your personal media shelf</h2>
             <p className="mt-2 text-sm leading-relaxed text-zinc-400">Search above to add anime, manga, shows, movies, or books. You can also start with a custom entry if it is not in one of the external catalogs.</p>
             <button type="button" onClick={() => setIsManualAddOpen(true)} className="mt-5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-indigo-500">Add your first item manually</button>
@@ -432,13 +432,13 @@ function Dashboard() {
 }
 
 export function LandingPage() {
-  return <main className="min-h-screen overflow-hidden bg-zinc-950 text-zinc-100">
+  return <main className="min-h-screen overflow-hidden bg-[#f4f2fb] text-slate-700">
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-8 lg:px-8">
       <nav className="flex items-center justify-between">
-        <Link href="/landing" className="flex items-center gap-2 text-lg font-extrabold"><span className="flex size-9 items-center justify-center rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-400">✦</span> OpenMT</Link>
+        <Link href="/landing" className="flex items-center gap-2 text-lg font-extrabold text-slate-800"><span className="flex size-9 items-center justify-center rounded-2xl bg-violet-300 text-violet-900">✦</span> OpenMT</Link>
         <div className="flex items-center gap-3"><Link href="/login" className="rounded-xl px-4 py-2 text-sm text-zinc-300 hover:text-white">Log in</Link><Link href="/signup" className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-500">Get started</Link></div>
       </nav>
-      <section className="flex flex-1 items-center py-20"><div className="max-w-3xl"><p className="mb-5 text-xs font-bold uppercase tracking-[0.25em] text-cyan-300">Your personal media command center</p><h1 className="text-5xl font-black tracking-tight text-white sm:text-7xl">Know what to watch, read, and finish next.</h1><p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-400">OpenMT brings anime, manga, TV, movies, and books into one calm, searchable shelf—so your next choice is easy and your progress never gets lost.</p><div className="mt-9 flex flex-wrap gap-3"><Link href="/signup" className="rounded-2xl bg-gradient-to-r from-indigo-600 to-cyan-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 hover:brightness-110">Create your free account</Link><Link href="/login" className="rounded-2xl border border-zinc-700 px-6 py-3 text-sm font-semibold text-zinc-200 hover:bg-zinc-900">I already have an account</Link></div></div></section>
+      <section className="flex flex-1 items-center py-20"><div className="max-w-3xl"><p className="mb-5 text-xs font-bold uppercase tracking-[0.25em] text-violet-500">Your personal media command center</p><h1 className="text-5xl font-black tracking-tight text-slate-800 sm:text-7xl">Know what to watch, read, and finish next.</h1><p className="mt-6 max-w-2xl text-lg leading-8 text-slate-500">OpenMT brings anime, manga, TV, movies, and books into one calm, searchable shelf—so your next choice is easy and your progress never gets lost.</p><div className="mt-9 flex flex-wrap gap-3"><Link href="/signup" className="rounded-2xl bg-violet-400 px-6 py-3 text-sm font-bold text-violet-950 shadow-lg shadow-violet-200 hover:bg-violet-300">Create your free account</Link><Link href="/login" className="rounded-2xl border border-violet-200 px-6 py-3 text-sm font-semibold text-slate-600 hover:bg-white">I already have an account</Link></div></div></section>
       <section className="grid gap-4 border-t border-zinc-800 pt-8 text-sm text-zinc-400 sm:grid-cols-3"><div><p className="font-semibold text-white">One unified shelf</p><p className="mt-1">Track every format in one place.</p></div><div><p className="font-semibold text-white">Less decision fatigue</p><p className="mt-1">Use Pick For Me when choosing feels hard.</p></div><div><p className="font-semibold text-white">Private by default</p><p className="mt-1">Your library belongs to your account.</p></div></section>
     </div>
   </main>;

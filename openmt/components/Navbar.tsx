@@ -49,11 +49,11 @@ export function Navbar({
     document.addEventListener("mousedown", close); return () => document.removeEventListener("mousedown", close);
   }, []);
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 w-full border-b border-violet-200/80 bg-[#f4f2fb]/90 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Brand Logo */}
         <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 text-white shadow-lg shadow-indigo-500/25">
+          <div className="flex size-9 items-center justify-center rounded-2xl bg-violet-300 text-violet-900 shadow-lg shadow-violet-200/60">
             <Layers className="size-5" />
           </div>
           <div>
@@ -98,7 +98,7 @@ export function Navbar({
           <button
             type="button"
             onClick={onPickForMe}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 hover:brightness-110 text-white text-xs font-bold shadow-md shadow-indigo-500/20 transition-all active:scale-95 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-400 hover:bg-violet-300 text-violet-950 text-xs font-bold shadow-md shadow-violet-200/70 transition-all active:scale-95 cursor-pointer"
           >
             <Dice5 className="size-4" />
             <span className="hidden sm:inline">Pick For Me</span>
