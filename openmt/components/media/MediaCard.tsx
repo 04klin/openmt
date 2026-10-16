@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 interface MediaCardProps {
   item: Media;
-  onUpdateProgress: (id: string, newProgress: number, volumeUpdate?: { currentVolume: number }) => void;
+  onUpdateProgress: (id: string, newProgress: number, partUpdate?: { currentVolume?: number; currentSeason?: number }) => void;
   onUpdateStatus: (id: string, newStatus: MediaStatus) => void;
   onEdit: (item: Media) => void;
   onDelete: (id: string) => void;
@@ -51,19 +51,19 @@ export function MediaCard({
   return (
     <div
       className={cn(
-        "group relative flex flex-col justify-between rounded-2xl bg-zinc-900/80 border border-zinc-800/80 p-3.5 transition-all duration-200 hover:border-zinc-700/90 hover:shadow-xl",
+        "group relative flex flex-col justify-between rounded-2xl bg-zinc-900/80 border card-border p-3.5 transition-all duration-200 card-border-hover hover:shadow-xl",
         isActiveVariant && cn("ring-1 ring-white/10 bg-zinc-900/95", config.glowClass)
       )}
     >
       {/* Top Header & Artwork Area */}
       <div className="flex gap-3.5 items-start min-w-0">
         {/* Cover Artwork */}
-        <div className="relative shrink-0 overflow-hidden rounded-xl bg-zinc-800 ring-1 ring-white/10 w-20 sm:w-24 aspect-[2/3] group-hover:ring-white/20 transition-all">
+        <div className="group/image relative shrink-0 overflow-hidden rounded-xl bg-zinc-800 ring-1 ring-white/10 w-20 sm:w-24 aspect-[2/3] group-hover/image:ring-white/20 transition-all">
           {item.coverImageUrl ? (
             <img
               src={item.coverImageUrl}
               alt={item.title}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="h-full w-full object-cover transition-transform duration-300 group-hover/image:scale-105"
               loading="lazy"
             />
           ) : (
@@ -77,9 +77,9 @@ export function MediaCard({
             type="button"
             onClick={handleLaunch}
             title={item.streamLink ? "Open stream / reader" : "Add stream link"}
-            className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-xs cursor-pointer text-white"
+            className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover/image:opacity-100 transition-opacity backdrop-blur-xs cursor-pointer text-white"
           >
-            <div className="p-2 rounded-full bg-indigo-600/90 text-white shadow-lg hover:scale-110 transition-transform">
+            <div className="p-2 rounded-full play-action text-white shadow-lg hover:scale-110 transition-transform">
               {item.mediaType === "book" || item.mediaType === "manga" ? (
                 <ExternalLink className="size-4" />
               ) : (
@@ -255,15 +255,17 @@ export function MediaCard({
       </div>
 
       {/* Stepper & Bottom Action Bar */}
-      <div className="mt-3.5 pt-3 border-t border-zinc-800/80 space-y-2">
+      <div className="mt-3.5 pt-3 border-t card-border space-y-2">
         <ProgressStepper
           currentProgress={item.currentProgress}
           maxProgress={item.maxProgress}
           mediaType={item.mediaType as MediaType}
           currentVolume={item.metadata?.currentVolume}
           maxVolumes={item.metadata?.maxVolumes}
+          currentSeason={item.metadata?.currentSeason}
+          maxSeasons={item.metadata?.maxSeasons}
           forceComplete={item.status === "completed"}
-          onUpdate={(newVal, volumeUpdate) => onUpdateProgress(item.id, newVal, volumeUpdate)}
+          onUpdate={(newVal, partUpdate) => onUpdateProgress(item.id, newVal, partUpdate)}
         />
 
         {/* Quick action footer */}
@@ -274,7 +276,7 @@ export function MediaCard({
             <button
               type="button"
               onClick={() => onUpdateStatus(item.id, "active")}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow-sm transition-all active:scale-95"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg play-action text-white font-medium shadow-sm transition-all active:scale-95"
             >
               <Play className="size-3 fill-current" />
               Start

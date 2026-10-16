@@ -10,14 +10,15 @@ export function deriveMediaStatus(input: {
 }): MediaStatus {
   if (input.allowAutomaticTransition === false) return input.status;
 
-  const currentVolume = input.metadata?.currentVolume ?? 1;
-  const maxVolumes = input.metadata?.maxVolumes;
-  const complete = input.mediaType === "manga"
-    ? Boolean(maxVolumes && currentVolume >= maxVolumes && input.maxProgress && input.maxProgress > 0 && input.currentProgress >= input.maxProgress)
+  const isGrouped = input.mediaType === "manga" || input.mediaType === "tv";
+  const currentPart = input.mediaType === "tv" ? (input.metadata?.currentSeason ?? 1) : (input.metadata?.currentVolume ?? 1);
+  const maxParts = input.mediaType === "tv" ? input.metadata?.maxSeasons : input.metadata?.maxVolumes;
+  const complete = isGrouped
+    ? Boolean(maxParts && currentPart >= maxParts && input.maxProgress && input.maxProgress > 0 && input.currentProgress >= input.maxProgress)
     : Boolean(input.maxProgress && input.maxProgress > 0 && input.currentProgress >= input.maxProgress);
 
   if (complete) return "completed";
-  if (input.status === "backlog" && (input.currentProgress > 0 || (input.mediaType === "manga" && currentVolume > 1))) {
+  if (input.status === "backlog" && (input.currentProgress > 0 || (isGrouped && currentPart > 1))) {
     return "active";
   }
   return input.status;

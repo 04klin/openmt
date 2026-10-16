@@ -3,9 +3,6 @@ import {
   FileText,
   Plus,
   Download,
-  Flame,
-  CheckCircle2,
-  Clock,
   Layers,
   UserCircle,
   Settings,
@@ -17,12 +14,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
 interface NavbarProps {
-  stats: {
-    total: number;
-    active: number;
-    backlog: number;
-    completed: number;
-  };
   onOpenPickForMe: () => void;
   onOpenScratchpad: () => void;
   onOpenManualAdd: () => void;
@@ -30,7 +21,6 @@ interface NavbarProps {
 }
 
 export function Navbar({
-  stats,
   onOpenPickForMe: onPickForMe,
   onOpenScratchpad: onScratchpad,
   onOpenManualAdd: onManualAdd,
@@ -49,7 +39,7 @@ export function Navbar({
     document.addEventListener("mousedown", close); return () => document.removeEventListener("mousedown", close);
   }, []);
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-violet-200/80 bg-[#f4f2fb]/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 w-full border-b border-subtle surface backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Brand Logo */}
         <div className="flex items-center gap-3">
@@ -68,27 +58,6 @@ export function Navbar({
             <p className="text-[11px] text-zinc-400 hidden sm:block">
               Unified Personal Media & Decision Engine
             </p>
-          </div>
-        </div>
-
-        {/* Quick Stats Badges (Hidden on very small screens) */}
-        <div className="hidden md:flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-300">
-            <Flame className="size-3.5 text-emerald-400" />
-            <span className="font-semibold text-white">{stats.active}</span>
-            <span className="text-zinc-500">Active</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-300">
-            <Clock className="size-3.5 text-violet-400" />
-            <span className="font-semibold text-white">{stats.backlog}</span>
-            <span className="text-zinc-500">Backlog</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-300">
-            <CheckCircle2 className="size-3.5 text-blue-400" />
-            <span className="font-semibold text-white">{stats.completed}</span>
-            <span className="text-zinc-500">Done</span>
           </div>
         </div>
 

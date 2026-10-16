@@ -45,7 +45,7 @@ export async function PATCH(
     }
 
     // Determine lifecycle state transition in one shared domain function.
-    const isManga = (validated.mediaType ?? existing.mediaType) === "manga";
+    const effectiveMediaType = validated.mediaType ?? existing.mediaType;
     let updatedStatus = validated.status ?? existing.status;
     const newProgress =
       validated.currentProgress !== undefined
@@ -61,7 +61,7 @@ export async function PATCH(
       ...(existing.metadata ?? {}),
       ...(validated.metadata ?? {}),
     };
-    updatedStatus = deriveMediaStatus({ mediaType: isManga ? "manga" : existing.mediaType, status: updatedStatus, currentProgress: newProgress, maxProgress: effectiveMaxProgress, metadata: mergedMetadata, allowAutomaticTransition: validated.status === undefined });
+    updatedStatus = deriveMediaStatus({ mediaType: effectiveMediaType, status: updatedStatus, currentProgress: newProgress, maxProgress: effectiveMaxProgress, metadata: mergedMetadata, allowAutomaticTransition: validated.status === undefined });
 
     const updateData: Record<string, unknown> = {
       ...validated,

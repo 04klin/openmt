@@ -27,6 +27,10 @@ export type MediaMetadata = {
   currentVolume?: number;
   /** Maximum known volumes for a manga series */
   maxVolumes?: number;
+  /** Current season the viewer is on (TV-specific) */
+  currentSeason?: number;
+  /** Maximum known seasons for a TV series */
+  maxSeasons?: number;
   isbn?: string;
   authors?: string[];
   banner_image_url?: string;
@@ -34,6 +38,8 @@ export type MediaMetadata = {
   progress_unit?: "episodes" | "chapters" | "pages" | "minutes" | "units";
   external_url?: string;
   release_year?: number | string;
+  /** Normalized release year used by the catalog sort. */
+  year?: number | string;
 };
 
 export const media = sqliteTable("media", {

@@ -8,12 +8,14 @@ interface ProgressStepperProps {
   currentProgress: number;
   maxProgress?: number | null;
   mediaType: MediaType;
-  onUpdate: (newProgress: number, volumeUpdate?: { currentVolume: number }) => void;
+  onUpdate: (newProgress: number, partUpdate?: { currentVolume?: number; currentSeason?: number }) => void;
   disabled?: boolean;
   compact?: boolean;
   // Manga-specific volume props
   currentVolume?: number;
   maxVolumes?: number | null;
+  currentSeason?: number;
+  maxSeasons?: number | null;
   forceComplete?: boolean;
 }
 
@@ -26,6 +28,8 @@ export function ProgressStepper({
   compact = false,
   currentVolume,
   maxVolumes,
+  currentSeason,
+  maxSeasons,
   forceComplete = false,
 }: ProgressStepperProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -36,11 +40,14 @@ export function ProgressStepper({
   // Volume edit state (manga only)
   const [isEditingVolume, setIsEditingVolume] = useState(false);
   const [tempVolumeValue, setTempVolumeValue] = useState(
-    (currentVolume ?? 1).toString()
+    (mediaType === "tv" ? (currentSeason ?? 1) : (currentVolume ?? 1)).toString()
   );
 
   const isManga = mediaType === "manga";
-  const showVolumes = isManga;
+  const isTv = mediaType === "tv";
+  const showVolumes = isManga || isTv;
+  const partCurrent = isTv ? (currentSeason ?? 1) : (currentVolume ?? 1);
+  const partMax = isTv ? maxSeasons : maxVolumes;
 
   // Sync dragValue when currentProgress changes from external updates while not dragging
   useEffect(() => {
@@ -51,8 +58,8 @@ export function ProgressStepper({
   }, [currentProgress, isDragging]);
 
   useEffect(() => {
-    setTempVolumeValue((currentVolume ?? 1).toString());
-  }, [currentVolume]);
+    setTempVolumeValue(partCurrent.toString());
+  }, [currentVolume, currentSeason, partCurrent]);
 
   const config = MEDIA_TYPE_CONFIG[mediaType] || MEDIA_TYPE_CONFIG.anime;
   const unit = config.unitName;
@@ -66,20 +73,20 @@ export function ProgressStepper({
       : 0;
 
   // Volume percentage for manga
-  const volCurrent = currentVolume ?? 1;
+  const volCurrent = partCurrent;
   const volumePercentage =
-    maxVolumes && maxVolumes > 0
-      ? Math.min(100, Math.round((volCurrent / maxVolumes) * 100))
+    partMax && partMax > 0
+      ? Math.min(100, Math.round((volCurrent / partMax) * 100))
       : 0;
 
   const handleDecrement = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (disabled) return;
 
-    if (isManga && currentProgress <= 1) {
+    if (showVolumes && currentProgress <= 1) {
       // If we're at chapter 1 (or 0) and volume > 1, go down a volume
       if (volCurrent > 1) {
-        onUpdate(maxProgress ?? currentProgress, { currentVolume: volCurrent - 1 });
+        onUpdate(maxProgress ?? currentProgress, isTv ? { currentSeason: volCurrent - 1 } : { currentVolume: volCurrent - 1 });
       }
       return;
     }
@@ -103,13 +110,13 @@ export function ProgressStepper({
    */
   const updateChapterProgress = (nextProgress: number) => {
     if (
-      isManga &&
+      showVolumes &&
       maxProgress &&
       maxProgress > 0 &&
       nextProgress >= maxProgress &&
-      (!maxVolumes || volCurrent < maxVolumes)
+      (!partMax || volCurrent < partMax)
     ) {
-      onUpdate(1, { currentVolume: volCurrent + 1 });
+      onUpdate(1, isTv ? { currentSeason: volCurrent + 1 } : { currentVolume: volCurrent + 1 });
       return;
     }
 
@@ -135,9 +142,9 @@ export function ProgressStepper({
     if (e) e.preventDefault();
     const parsed = parseInt(tempVolumeValue, 10);
     if (!isNaN(parsed) && parsed >= 1) {
-      const finalVol = maxVolumes ? Math.min(parsed, maxVolumes) : parsed;
+      const finalVol = partMax ? Math.min(parsed, partMax) : parsed;
       // Pass volume change without changing chapter progress
-      onUpdate(currentProgress, { currentVolume: finalVol });
+      onUpdate(currentProgress, isTv ? { currentSeason: finalVol } : { currentVolume: finalVol });
     } else {
       setTempVolumeValue((currentVolume ?? 1).toString());
     }
@@ -148,15 +155,15 @@ export function ProgressStepper({
     e.stopPropagation();
     if (disabled) return;
     if (volCurrent > 1) {
-      onUpdate(currentProgress, { currentVolume: volCurrent - 1 });
+      onUpdate(currentProgress, isTv ? { currentSeason: volCurrent - 1 } : { currentVolume: volCurrent - 1 });
     }
   };
 
   const handleVolumeIncrement = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (disabled) return;
-    if (maxVolumes && volCurrent >= maxVolumes) return;
-    onUpdate(currentProgress, { currentVolume: volCurrent + 1 });
+    if (partMax && volCurrent >= partMax) return;
+    onUpdate(currentProgress, isTv ? { currentSeason: volCurrent + 1 } : { currentVolume: volCurrent + 1 });
   };
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,7 +202,7 @@ export function ProgressStepper({
                   className="w-12 rounded bg-zinc-800 border border-zinc-600 px-1.5 py-0.5 text-xs text-white text-center focus:outline-none focus:ring-1 focus:ring-violet-500"
                 />
                 <span className="text-zinc-400">
-                  {maxVolumes ? `/ ${maxVolumes} vols` : "vol"}
+                  {partMax ? `/ ${partMax} ${isTv ? "seasons" : "vols"}` : isTv ? "season" : "vol"}
                 </span>
                 <button type="submit" className="p-1 text-emerald-400 hover:text-emerald-300 rounded">
                   <Check className="size-3" />
@@ -218,14 +225,14 @@ export function ProgressStepper({
                     "bg-violet-900/30 group-hover/vol:bg-violet-800/40 border-violet-700/40 text-violet-200"
                   )}
                 >
-                  Vol {volCurrent}
+                  {isTv ? "Season" : "Vol"} {volCurrent}
                 </span>
                 <span className="text-zinc-400">
-                  {maxVolumes ? `/ ${maxVolumes}` : ""}
+                  {partMax ? `/ ${partMax}` : ""}
                 </span>
-                {maxVolumes && volCurrent >= maxVolumes && (
+                {partMax && volCurrent >= partMax && (
                   <span className="text-violet-300 font-sans font-semibold text-[10px] ml-1">
-                    FINAL VOLUME
+                    FINAL {isTv ? "SEASON" : "VOLUME"}
                   </span>
                 )}
               </button>
@@ -239,7 +246,7 @@ export function ProgressStepper({
                 disabled={disabled || volCurrent <= 1}
                 aria-label="Decrease volume"
                 className={cn(
-                  "flex items-center justify-center rounded bg-zinc-800/90 text-violet-300 hover:bg-violet-800/50 hover:text-violet-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed border border-violet-700/30 active:scale-95",
+                    "flex items-center justify-center rounded increment-control transition-all disabled:opacity-40 disabled:cursor-not-allowed border active:scale-95",
                   compact ? "size-6" : "size-7"
                 )}
               >
@@ -248,10 +255,10 @@ export function ProgressStepper({
               <button
                 type="button"
                 onClick={handleVolumeIncrement}
-                disabled={disabled || (Boolean(maxVolumes) && volCurrent >= (maxVolumes || 0))}
+                disabled={disabled || (Boolean(partMax) && volCurrent >= (partMax || 0))}
                 aria-label="Increase volume"
                 className={cn(
-                  "flex items-center justify-center rounded bg-zinc-800/90 text-violet-300 hover:bg-violet-800/50 hover:text-violet-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed border border-violet-700/30 active:scale-95 font-bold",
+                    "flex items-center justify-center rounded increment-control transition-all disabled:opacity-40 disabled:cursor-not-allowed border active:scale-95 font-bold",
                   compact ? "size-6" : "size-7"
                 )}
               >
@@ -261,8 +268,8 @@ export function ProgressStepper({
           </div>
 
           {/* Volume progress bar */}
-          {maxVolumes && maxVolumes > 0 ? (
-            <div className="w-full bg-zinc-800/60 rounded-full h-1 overflow-hidden ring-1 ring-white/5">
+          {partMax && partMax > 0 ? (
+            <div className="w-full slider-track rounded-full h-1 overflow-hidden ring-1 ring-white/5">
               <div
                 className={cn(
                   "h-full transition-[width] ease-out rounded-full",
@@ -274,7 +281,7 @@ export function ProgressStepper({
               />
             </div>
           ) : (
-            <div className="w-full bg-zinc-800/60 rounded-full h-1 overflow-hidden">
+            <div className="w-full slider-track rounded-full h-1 overflow-hidden">
               <div className="h-full bg-violet-500/30 w-full animate-pulse" />
             </div>
           )}
@@ -350,7 +357,7 @@ export function ProgressStepper({
             disabled={disabled || (currentProgress <= 0 && (!isManga || volCurrent <= 1))}
             aria-label="Decrease progress"
             className={cn(
-              "flex items-center justify-center rounded bg-zinc-800/90 text-zinc-300 hover:bg-zinc-700 hover:text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed border border-zinc-700/50 active:scale-95",
+              "flex items-center justify-center rounded increment-control transition-all disabled:opacity-40 disabled:cursor-not-allowed border active:scale-95",
               compact ? "size-6" : "size-7"
             )}
           >
@@ -363,11 +370,11 @@ export function ProgressStepper({
               disabled ||
               (Boolean(maxProgress) &&
                 currentProgress >= (maxProgress || 0) &&
-                (!isManga || (Boolean(maxVolumes) && volCurrent >= (maxVolumes || 0))))
+                (!showVolumes || (Boolean(partMax) && volCurrent >= (partMax || 0))))
             }
             aria-label="Increase progress"
             className={cn(
-              "flex items-center justify-center rounded bg-zinc-800/90 text-zinc-300 hover:bg-zinc-700 hover:text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed border border-zinc-700/50 active:scale-95 font-bold",
+              "flex items-center justify-center rounded increment-control transition-all disabled:opacity-40 disabled:cursor-not-allowed border active:scale-95 font-bold",
               compact ? "size-6" : "size-7"
             )}
           >
@@ -380,7 +387,7 @@ export function ProgressStepper({
       {maxProgress && maxProgress > 0 ? (
         <div className="relative group/slider flex items-center w-full py-1">
           {/* Background Track */}
-          <div className="w-full bg-zinc-800/90 rounded-full h-1.5 overflow-hidden ring-1 ring-white/5 pointer-events-none transition-all group-hover/slider:h-2">
+          <div className="w-full slider-track rounded-full h-1.5 overflow-hidden ring-1 ring-white/5 pointer-events-none transition-all group-hover/slider:h-2">
             {/* Active Fill Gradient */}
             <div
               className={cn(
@@ -413,7 +420,7 @@ export function ProgressStepper({
           />
         </div>
       ) : (
-        <div className="w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden">
+        <div className="w-full slider-track rounded-full h-1.5 overflow-hidden">
           <div className={cn("h-full w-full", forceComplete ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]" : "bg-indigo-500/50 animate-pulse")} />
         </div>
       )}

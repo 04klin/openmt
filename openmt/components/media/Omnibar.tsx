@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search, Loader2, Plus, Play, Sparkles, X, CheckCircle2, Library } from "lucide-react";
+import { Search, Loader2, Plus, Play, Sparkles, X, CheckCircle2 } from "lucide-react";
 import { Media, MediaStatus, MediaType } from "@/db/schema";
 import { NormalizedMediaResult } from "@/lib/types";
 import { MediaBadge } from "./MediaBadge";
@@ -43,7 +43,6 @@ function findLibraryItem(item: NormalizedMediaResult, library: Media[]) {
 export function Omnibar({ onAddMedia, localMedia, onUpdateStatus, onOpenManualAdd }: OmnibarProps) {
   const [query, setQuery] = useState("");
   const [selectedType, setSelectedType] = useState<MediaType | "all">("all");
-  const [searchScope, setSearchScope] = useState<"online" | "local">("online");
   const [results, setResults] = useState<NormalizedMediaResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -89,30 +88,6 @@ export function Omnibar({ onAddMedia, localMedia, onUpdateStatus, onOpenManualAd
     const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
-        if (searchScope === "local") {
-          const normalized = trimmed.toLocaleLowerCase();
-          const localResults = localMedia
-            .filter((item) =>
-              (selectedType === "all" || item.mediaType === selectedType) &&
-              item.title.toLocaleLowerCase().includes(normalized)
-            )
-            .slice(0, 20)
-            .map((item): NormalizedMediaResult => ({
-              id: item.id,
-              provider: "manual",
-              title: item.title,
-              mediaType: item.mediaType as MediaType,
-              coverImageUrl: item.coverImageUrl ?? undefined,
-              maxProgress: item.maxProgress ?? undefined,
-              progressUnit: item.metadata?.progress_unit ?? "units",
-              genres: item.genres ?? undefined,
-              streamLink: item.streamLink ?? undefined,
-              metadata: item.metadata ?? undefined,
-            }));
-          setResults(localResults);
-          setIsOpen(true);
-          return;
-        }
         const res = await fetch(
           `/api/search?q=${encodeURIComponent(trimmed)}&type=${selectedType}&limit=10`
         );
@@ -129,7 +104,7 @@ export function Omnibar({ onAddMedia, localMedia, onUpdateStatus, onOpenManualAd
     }, 280);
 
     return () => clearTimeout(timer);
-  }, [query, selectedType, searchScope, localMedia]);
+  }, [query, selectedType]);
 
   const handleAdd = async (item: NormalizedMediaResult, status: "active" | "backlog" | "completed") => {
     setAddingId(item.id + status);
@@ -151,26 +126,12 @@ export function Omnibar({ onAddMedia, localMedia, onUpdateStatus, onOpenManualAd
           (e.target as HTMLElement).blur();
         }
       }}
-      className="relative w-full max-w-3xl mx-auto z-40"
+      className="relative w-full max-w-3xl mx-auto z-20"
     >
       {/* Search Bar Container */}
       <div className="relative z-20 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-1.5 rounded-2xl bg-zinc-900/90 border border-zinc-700/70 shadow-2xl backdrop-blur-xl focus-within:border-indigo-500/80 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
         {/* Category Pills */}
         <div className="flex items-center gap-1 pb-1 sm:pb-0 px-1">
-          {(["online", "local"] as const).map((scope) => (
-            <button
-              key={scope}
-              type="button"
-              onClick={() => setSearchScope(scope)}
-              className={cn(
-                "px-2.5 py-1 rounded-xl text-xs font-medium whitespace-nowrap transition-all cursor-pointer",
-                searchScope === scope ? "bg-cyan-600 text-white shadow-sm" : "bg-zinc-800/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
-              )}
-            >
-              {scope === "local" && <Library className="inline size-3 mr-1" />}
-              {scope === "online" ? "Online" : "My Library"}
-            </button>
-          ))}
           <div className="group relative shrink-0">
             <button
               type="button"
@@ -243,8 +204,8 @@ export function Omnibar({ onAddMedia, localMedia, onUpdateStatus, onOpenManualAd
           {results.length > 0 ? (
             <div className="space-y-1.5">
               <div className="px-2 py-1 flex items-center justify-between text-[11px] font-semibold tracking-wider uppercase text-zinc-400 border-b border-zinc-800/80 mb-1">
-                <span>{searchScope === "local" ? "My Library" : "Online Results"} ({results.length})</span>
-                <span className="text-[10px] text-zinc-500">{searchScope === "local" ? "Your saved media" : "Auto-resolved metadata"}</span>
+                <span>Online Results ({results.length})</span>
+                <span className="text-[10px] text-zinc-500">Auto-resolved metadata</span>
               </div>
 
               {results.map((item) => {
@@ -370,7 +331,7 @@ export function Omnibar({ onAddMedia, localMedia, onUpdateStatus, onOpenManualAd
               <p className="text-sm text-zinc-400">
                 No matching media found for &ldquo;<span className="text-zinc-200">{query}</span>&rdquo;
               </p>
-              {searchScope === "online" && <button
+              <button
                 type="button"
                 onClick={() => {
                   setIsOpen(false);
@@ -380,7 +341,7 @@ export function Omnibar({ onAddMedia, localMedia, onUpdateStatus, onOpenManualAd
               >
                 <Plus className="size-3.5" />
                 Add custom media manually
-              </button>}
+              </button>
       </div>
           ) : null}
         </div>

@@ -7,14 +7,14 @@ import { cn } from "@/lib/utils";
 
 interface CatalogViewProps {
   items: Media[];
-  onUpdateProgress: (id: string, newProgress: number, volumeUpdate?: { currentVolume: number }) => void;
+  onUpdateProgress: (id: string, newProgress: number, partUpdate?: { currentVolume?: number; currentSeason?: number }) => void;
   onUpdateStatus: (id: string, newStatus: MediaStatus) => void;
   onEdit: (item: Media) => void;
   onDelete: (id: string) => void;
   onOpenManualAdd: () => void;
 }
 
-type SortOption = "created" | "updated" | "title" | "progress" | "rating";
+type SortOption = "created" | "updated" | "release" | "title" | "progress" | "rating";
 
 const STATUS_TABS: { label: string; value: "all" | MediaStatus }[] = [
   { label: "All Items", value: "all" },
@@ -46,6 +46,12 @@ export function CatalogView({
   const [activeMedium, setActiveMedium] = useState<"all" | MediaType>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("created");
+
+  const releaseYear = (item: Media) => {
+    const value = item.metadata?.release_year ?? item.metadata?.year;
+    const year = Number(value);
+    return Number.isFinite(year) && year > 0 ? year : null;
+  };
 
   // Initialize Fuse.js for ultra-fast typo-tolerant fuzzy search
   const fuse = useMemo(() => {
@@ -88,6 +94,14 @@ export function CatalogView({
       }
       if (sortBy === "rating") {
         return (b.rating || 0) - (a.rating || 0);
+      }
+      if (sortBy === "release") {
+        const yearA = releaseYear(a);
+        const yearB = releaseYear(b);
+        if (yearA === null && yearB === null) return 0;
+        if (yearA === null) return 1;
+        if (yearB === null) return -1;
+        return yearB - yearA;
       }
       if (sortBy === "progress") {
         const pctA = a.maxProgress && a.maxProgress > 0 ? a.currentProgress / a.maxProgress : 0;
@@ -213,6 +227,7 @@ export function CatalogView({
               className="bg-zinc-900 border border-zinc-800 rounded-xl px-2.5 py-1 text-xs text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
               <option value="created">Date Added (Newest)</option>
+              <option value="release">Release Date (Newest)</option>
               <option value="updated">Recently Updated</option>
               <option value="title">Alphabetical (A-Z)</option>
               <option value="progress">Completion %</option>

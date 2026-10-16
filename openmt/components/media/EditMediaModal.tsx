@@ -24,6 +24,8 @@ export function EditMediaModal({
   const [maxProgress, setMaxProgress] = useState("");
   const [currentVolume, setCurrentVolume] = useState("");
   const [maxVolumes, setMaxVolumes] = useState("");
+  const [currentSeason, setCurrentSeason] = useState("");
+  const [maxSeasons, setMaxSeasons] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const [streamLink, setStreamLink] = useState("");
   const [rating, setRating] = useState<number | null>(null);
@@ -40,6 +42,8 @@ export function EditMediaModal({
       setMaxProgress(item.maxProgress ? item.maxProgress.toString() : "");
       setCurrentVolume(item.metadata?.currentVolume?.toString() ?? "");
       setMaxVolumes(item.metadata?.maxVolumes?.toString() ?? "");
+      setCurrentSeason(item.metadata?.currentSeason?.toString() ?? "");
+      setMaxSeasons(item.metadata?.maxSeasons?.toString() ?? "");
       setCoverImageUrl(item.coverImageUrl || "");
       setStreamLink(item.streamLink || "");
       setRating(item.rating || null);
@@ -68,15 +72,19 @@ export function EditMediaModal({
         .map((g) => g.trim())
         .filter(Boolean);
 
-      // Build metadata merge: preserve existing metadata, overlay volume fields
+      // Build metadata merge: preserve existing metadata, overlay grouped-progress fields
       const parsedCurrentVol = currentVolume ? parseInt(currentVolume, 10) : undefined;
       const parsedMaxVols = maxVolumes ? parseInt(maxVolumes, 10) : undefined;
+      const parsedCurrentSeason = currentSeason ? parseInt(currentSeason, 10) : undefined;
+      const parsedMaxSeasons = maxSeasons ? parseInt(maxSeasons, 10) : undefined;
       const metadataPatch =
-        mediaType === "manga"
+        mediaType === "manga" || mediaType === "tv"
           ? {
               ...(item.metadata ?? {}),
               ...(parsedCurrentVol !== undefined ? { currentVolume: parsedCurrentVol } : {}),
               ...(parsedMaxVols !== undefined ? { maxVolumes: parsedMaxVols } : {}),
+              ...(parsedCurrentSeason !== undefined ? { currentSeason: parsedCurrentSeason } : {}),
+              ...(parsedMaxSeasons !== undefined ? { maxSeasons: parsedMaxSeasons } : {}),
             }
           : item.metadata;
 
@@ -238,6 +246,12 @@ export function EditMediaModal({
                   className="w-full bg-zinc-800 border border-violet-700/50 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-violet-500"
                 />
               </div>
+            </div>
+          )}
+          {mediaType === "tv" && (
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="text-xs font-semibold text-violet-300 block mb-1">Current Season</label><input type="number" min={1} value={currentSeason} onChange={(e) => setCurrentSeason(e.target.value)} placeholder="e.g. 2" className="w-full bg-zinc-800 border border-violet-700/50 rounded-xl px-3 py-2 text-xs text-white" /></div>
+              <div><label className="text-xs font-semibold text-violet-300 block mb-1">Total Seasons</label><input type="number" min={1} value={maxSeasons} onChange={(e) => setMaxSeasons(e.target.value)} placeholder="Optional" className="w-full bg-zinc-800 border border-violet-700/50 rounded-xl px-3 py-2 text-xs text-white" /></div>
             </div>
           )}
 

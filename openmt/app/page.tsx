@@ -138,15 +138,15 @@ function Dashboard() {
 
   // Optimistic Progress Mutation
   const updateProgressMutation = useMutation({
-    mutationFn: async ({ id, newProgress, volumeUpdate }: { id: string; newProgress: number; volumeUpdate?: { currentVolume: number } }) => {
+    mutationFn: async ({ id, newProgress, partUpdate }: { id: string; newProgress: number; partUpdate?: { currentVolume?: number; currentSeason?: number } }) => {
       // Build the PATCH body — merge volume into metadata when present
       const body: Record<string, unknown> = { currentProgress: newProgress };
-      if (volumeUpdate) {
+      if (partUpdate) {
         // We need to fetch the current item's metadata to merge safely
         const currentItem = queryClient.getQueryData<Media[]>(["media"])?.find((m) => m.id === id);
         body.metadata = {
           ...(currentItem?.metadata ?? {}),
-          currentVolume: volumeUpdate.currentVolume,
+          ...partUpdate,
         };
       }
       const res = await fetch(`/api/media/${id}`, {
@@ -157,20 +157,21 @@ function Dashboard() {
       if (!res.ok) throw new Error("Failed to update progress");
       return res.json();
     },
-    onMutate: async ({ id, newProgress, volumeUpdate }) => {
+    onMutate: async ({ id, newProgress, partUpdate }) => {
       await queryClient.cancelQueries({ queryKey: ["media"] });
       const previous = queryClient.getQueryData<Media[]>(["media"]);
 
       queryClient.setQueryData<Media[]>(["media"], (old = []) =>
         old.map((item) => {
           if (item.id === id) {
-            const isManga = item.mediaType === "manga";
+            const isGrouped = item.mediaType === "manga" || item.mediaType === "tv";
+            const isTv = item.mediaType === "tv";
             const nextVolume =
-              volumeUpdate?.currentVolume ?? item.metadata?.currentVolume ?? 1;
-            const maxVolumes = item.metadata?.maxVolumes;
+              partUpdate?.currentSeason ?? (isTv ? item.metadata?.currentSeason : partUpdate?.currentVolume ?? item.metadata?.currentVolume) ?? 1;
+            const maxVolumes = isTv ? item.metadata?.maxSeasons : item.metadata?.maxVolumes;
 
             let isCompleted = false;
-            if (isManga) {
+            if (isGrouped) {
               isCompleted = Boolean(
                 maxVolumes &&
                   maxVolumes > 0 &&
@@ -190,7 +191,7 @@ function Dashboard() {
             const newStatus = isCompleted
               ? "completed"
               : item.status === "backlog" &&
-                (newProgress > 0 || (isManga && nextVolume > 1))
+                (newProgress > 0 || (isGrouped && nextVolume > 1))
               ? "active"
               : item.status;
 
@@ -198,8 +199,8 @@ function Dashboard() {
               ...item,
               currentProgress: newProgress,
               status: newStatus,
-              metadata: volumeUpdate
-                ? { ...(item.metadata ?? {}), currentVolume: volumeUpdate.currentVolume }
+              metadata: partUpdate
+                ? { ...(item.metadata ?? {}), ...partUpdate }
                 : item.metadata,
               updatedAt: new Date(),
             };
@@ -314,26 +315,10 @@ function Dashboard() {
     notify(`${item.title} added to your library.`);
   };
 
-  const backlogItems = React.useMemo(() => {
-    return mediaList.filter((m) => m.status === "backlog");
-  }, [mediaList]);
-
-  const completedItems = React.useMemo(() => {
-    return mediaList.filter((m) => m.status === "completed");
-  }, [mediaList]);
-
-  const stats = {
-    total: mediaList.length,
-    active: mediaList.filter((m) => m.status === "active").length,
-    backlog: backlogItems.length,
-    completed: completedItems.length,
-  };
-
   return (
-    <div className="min-h-screen flex flex-col bg-[#f4f2fb] text-slate-700 selection:bg-violet-200 selection:text-slate-800 pb-20">
+    <div className="min-h-screen flex flex-col surface content selection:bg-violet-200 selection:text-slate-800 pb-20">
       {/* Top Navbar */}
       <Navbar
-        stats={stats}
         onOpenPickForMe={() => setIsPickForMeOpen(true)}
         onOpenScratchpad={() => setIsScratchpadOpen(true)}
         onOpenManualAdd={() => setIsManualAddOpen(true)}
@@ -381,7 +366,7 @@ function Dashboard() {
           <CatalogView
             items={mediaList}
             onUpdateProgress={(id, newProg, volumeUpdate) =>
-              updateProgressMutation.mutate({ id, newProgress: newProg, volumeUpdate })
+              updateProgressMutation.mutate({ id, newProgress: newProg, partUpdate: volumeUpdate })
             }
             onUpdateStatus={(id, newStatus) =>
               updateStatusMutation.mutate({ id, newStatus })
