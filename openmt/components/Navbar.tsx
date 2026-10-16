@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
 interface NavbarProps {
@@ -37,6 +38,7 @@ export function Navbar({
 }: NavbarProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<{ username?: string; name?: string; email?: string; role?: string } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -110,7 +112,7 @@ export function Navbar({
               {user ? <>
                 <div className="border-b border-zinc-800 px-3 py-2"><p className="text-sm font-semibold text-white">{user.username || user.name}</p><p className="text-xs text-zinc-500">{user.role ? `${user.role} account` : "Account"}</p></div>
                 <Link href="/settings" className="mt-1 flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white"><Settings className="size-4" /> Settings</Link>
-                <button type="button" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); localStorage.removeItem("openmt-user"); setUser(null); setOpen(false); router.replace("/landing"); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-rose-300 hover:bg-rose-500/10"><LogOut className="size-4" /> Log out</button>
+                <button type="button" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); queryClient.setQueryData(["auth", "me"], { user: null }); localStorage.removeItem("openmt-user"); setUser(null); setOpen(false); router.replace("/landing"); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-rose-300 hover:bg-rose-500/10"><LogOut className="size-4" /> Log out</button>
               </> : <><Link href="/login" className="block rounded-xl px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800">Log in</Link><Link href="/signup" className="block rounded-xl px-3 py-2 text-sm text-indigo-300 hover:bg-zinc-800">Create account</Link></>}
             </div>}
           </div>

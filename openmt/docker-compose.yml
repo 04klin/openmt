@@ -9,7 +9,7 @@ services:
       AUTH_COOKIE_SECURE: "false"
     init: true
     volumes:
-      - openmt-data:/app/data
+      - ./data:/app/data
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/auth/me').then(r => process.exit(r.ok || r.status === 401 ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
@@ -17,6 +17,3 @@ services:
       retries: 3
       start_period: 10s
     restart: unless-stopped
-
-volumes:
-  openmt-data:
