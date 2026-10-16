@@ -3,6 +3,9 @@ services:
     build: .
     ports:
       - "3000:3000"
+    # Secrets stay on the host and are injected at container runtime.
+    env_file:
+      - .env.local
     environment:
       DATABASE_URL: sqlite:///app/data/sqlite.db
       # Set to "true" only when serving OpenMT over HTTPS.

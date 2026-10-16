@@ -104,11 +104,11 @@ export default function Home() {
   });
 
   if (isCheckingAuth) {
-    return <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-sm text-zinc-400"><Loader2 className="mr-2 size-4 animate-spin" /> Checking your session…</div>;
+    return <div className="flex min-h-screen items-center justify-center bg-[#f4f2fb] text-sm text-slate-500"><Loader2 className="mr-2 size-4 animate-spin" /> Checking your session…</div>;
   }
   if (!auth?.user) {
     router.replace("/landing");
-    return <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-sm text-zinc-400">Redirecting…</div>;
+    return <div className="flex min-h-screen items-center justify-center bg-[#f4f2fb] text-sm text-slate-500">Redirecting…</div>;
   }
   return <Dashboard />;
 }

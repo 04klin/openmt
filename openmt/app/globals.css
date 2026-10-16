@@ -84,6 +84,46 @@
   }
 }
 
+/* Shared pastel surface palette for legacy component utility classes. Keeping
+   this mapping here lets every card, modal, form, and menu share one theme. */
+@layer utilities {
+  [class~="bg-zinc-950"], [class~="bg-zinc-900"], [class~="bg-zinc-900/95"],
+  [class~="bg-zinc-900/90"], [class~="bg-zinc-900/80"], [class~="bg-zinc-900/70"],
+  [class~="bg-zinc-900/60"], [class~="bg-zinc-900/40"], [class~="bg-zinc-900/30"] {
+    background-color: #fbfaff;
+  }
+
+  [class~="bg-zinc-800"], [class~="bg-zinc-800/80"], [class~="bg-zinc-800/70"],
+  [class~="bg-zinc-800/60"], [class~="bg-zinc-800/40"], [class~="bg-zinc-700"] {
+    background-color: #eeeafb;
+  }
+
+  [class~="bg-black/80"] { background-color: rgb(91 82 117 / 28%); }
+  [class~="bg-black/50"] { background-color: rgb(91 82 117 / 18%); }
+
+  [class~="text-white"], [class~="text-zinc-100"], [class~="text-zinc-200"],
+  [class~="text-zinc-300"] { color: #3e3852; }
+  [class~="text-zinc-400"], [class~="text-zinc-500"], [class~="text-zinc-600"] { color: #77708b; }
+
+  [class~="border-zinc-800"], [class~="border-zinc-800/80"], [class~="border-zinc-700"],
+  [class~="border-zinc-700/80"], [class~="border-zinc-700/60"] { border-color: #ddd7ef; }
+
+  [class~="hover:bg-zinc-900"]:hover, [class~="hover:bg-zinc-800"]:hover,
+  [class~="hover:bg-zinc-800/80"]:hover, [class~="hover:bg-zinc-700"]:hover { background-color: #e6e0f5; }
+  [class~="hover:text-white"]:hover, [class~="hover:text-zinc-100"]:hover,
+  [class~="hover:text-zinc-200"]:hover { color: #332d49; }
+
+  [class~="bg-indigo-600"] { background-color: #a99be8; }
+  [class~="hover:bg-indigo-500"]:hover { background-color: #9889dc; }
+  [class~="bg-cyan-600"] { background-color: #8bcbd4; }
+  [class~="bg-blue-600"] { background-color: #91b9e8; }
+  [class~="hover:bg-blue-500"]:hover { background-color: #7faadf; }
+  [class~="text-indigo-300"], [class~="text-indigo-400"], [class~="text-violet-300"],
+  [class~="text-violet-400"] { color: #7567bb; }
+
+  input, select, textarea { color-scheme: light; }
+}
+
 /* Custom glowing effects and smooth animations */
 .glow-indigo {
   box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.35);
