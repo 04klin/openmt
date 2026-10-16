@@ -5,6 +5,8 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL: sqlite:///app/data/sqlite.db
+      # Set to "true" only when serving OpenMT over HTTPS.
+      AUTH_COOKIE_SECURE: "false"
     init: true
     volumes:
       - openmt-data:/app/data
